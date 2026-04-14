@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "103593137684",
+    "project_id": "skillswapppro",
+    "storage_bucket": "skillswapppro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:103593137684:android:f32667be9a1db69c0bf901",
+        "android_client_info": {
+          "package_name": "com.example.skill_swap_pro"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "103593137684-i46m5ekjvd4u8r05g7f8vqrrqpt7jbqs.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.skill_swap_pro",
+            "certificate_hash": "a5a9149e15091a8e886f2d864da874ae7b608f63"
+          }
+        },
+        {
+          "client_id": "103593137684-3uitoc6guj875oiks3r89s5i0kbp19oh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDahwK_lijvbF8Rv5fa2UbvpeXcmjohWk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "103593137684-3uitoc6guj875oiks3r89s5i0kbp19oh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

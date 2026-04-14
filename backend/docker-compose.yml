@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: skillprof-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: skilluser
+      POSTGRES_PASSWORD: skillpassword
+      POSTGRES_DB: skillprof_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer
+    container_name: skillprof-adminer
+    restart: always
+    ports:
+      - "8080:8080"
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: skillprof-auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DATABASE_URL=postgres://skilluser:skillpassword@db:5432/skillprof_db
+      - JWT_SECRET=yoursecretkey
+      - GOOGLE_CLIENT_ID=103593137684-3uitoc6guj875oiks3r89s5i0kbp19oh.apps.googleusercontent.com
+    depends_on:
+      - db
+    restart: always
+    volumes:
+      - ./auth-service/uploads:/app/uploads
+
+  course-service:
+    build:
+      context: ./course-service
+      dockerfile: Dockerfile
+    container_name: skillprof-course-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - DATABASE_URL=postgres://skilluser:skillpassword@db:5432/skillprof_db
+    depends_on:
+      - db
+    restart: always
+    volumes:
+      - ./course-service/uploads:/app/uploads
+
+volumes:
+  postgres_data:

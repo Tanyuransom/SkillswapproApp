@@ -1,0 +1,618 @@
+
+--- Page 1 ---
+SkillProf  – A Peer -to-Peer Skill 
+Exchange Platform  
+ 
+Software Design and Modelling Project Report  
+ 
+Course:  SE3140 - Software Design and Modelling  
+Instructor:  Engineer TEKOH PALMA ACHU  
+Group:  13 | Duration:  6 Weeks  
+ 
+Team Members  
+SN Name  Registration  Role  
+1 Tanyu Ransom 
+Tuwa  ICTU20233584  Scrum 
+Master/CTO  
+2 Feze Halimatou 
+Seidi Malaika  ICTU20241456  Product 
+Owner/Dev  
+ 
+ 
+GitHub:  https://github.com/Tanyuransom/skill -swap -mobile -application  
+ 
+ 
+ 
+--- Page 2 ---
+ 
+ 
+ABSTRACT  
+SkillSProf  is a Flutter mobile platform enabling students to teach and learn skills from peers. 
+Features include onboarding, authentication, dashboard with categories, skill discovery, course 
+enrollment, messaging, payment integration, profile management, and content upload. Built with 
+Firebase microservices architecture and implementing clean architecture patterns (Repository, 
+Singleton, Factory, Observer), the platform ensures scalable, maintainable peer learning.  
+ 
+TABLE OF CONTENTS  
+1. Introduction  
+2. Project Management (Scrum)  
+3. Application Design and Architecture  
+4. Results and Discussion  
+5. Conclusion and Future Work  
+6. References  
+7. Appendices  
+ 
+ 
+CHAPTER 1: INTRODUCTION  
+1.1 Overview  
+SkillProf  connects student educators with learners through a mobile platform featuring skill 
+categories (Learn Skills, Teach Skills), course discovery with ratings, payment integration 
+(MTN/Orange Money), real -time messaging, and content management. The platform includes 
+25+ screens covering onboarding, authentication, learning, teaching, communication, and 
+transactions.  
+--- Page 3 ---
+1.2 Problem Statement  
+Students face expensive courses, unverified teachers, limited payment options, and poo r 
+communication tools. SkillProf  addresses these through skill categorization, integrated payments, 
+real-time chat, and rating systems.  
+1.3 Objectives  
+1. Skill Discovery:  Category -based browsing (Learn/Teach Skills)  
+2. Course Management:  Upload lessons (PDF/Video), set pricing  
+3. Payments:  Mobile money integration (MTN, Orange)  
+4. Communication:  Real-time inbox messaging  
+5. Quality:  Rating/review system, blog discovery  
+ 
+1.4 Platform Purpose  
+ SkillProf serves as a bridge between student educators and learners, democratizing access to 
+quality education while creating economic opportunities for skilled students. By maintaining 
+rigorous verification standards and quality controls, the platform builds trust within the learning 
+community and ensures sustainable, high -quality educational experiences.  
+ 
+1.5 Key Features  
+• Onboarding:  3 welcome screens with skip/next navigation  
+• Authentication:  Sign up (student/tutor), sign in, password recovery, verification codes  
+• Dashboard:  Categories (Learn/Teach), trending offers, recommendations, filters  
+• Discovery:  Search with voice input, category filtering, skill cards with pricing/ratings  
+• Courses:  Detailed views with outlines, pricing (100,000fr - 150,000fr), "Pay to learn" 
+button  
+• Payments:  MTN/Orange Money selection, checkout with tax calculation  
+• Messaging:  Inbox with search, personal conversations with timestamps  
+• Profile:  Edit profile, payment methods, language, order history, help center  
+• Content Upload:  PDF/Video upload, gallery/folder selection, post completion  
+• Notifications:  Settings for payments, sounds, vibrate, offers, cashback, promos  
+• Blogs:  Discovery dashboard with featured articles, categories  
+ 
+1.6 Innovations:  
+--- Page 4 ---
+1. AI-Powered Verification:  Unlike traditional platforms that rely solely on credential 
+uploads, SkillProf  incorporates AI -generated examinations that assess practical 
+knowledge and competency, providing an accessible alternative for users without formal 
+certifications.  
+2. Trust -Based Architecture:  The platform's verification requirements create a trusted 
+ecosystem where learners can confidently invest time and resources knowing instructors 
+have demonstrated genuine expertise.  
+3. Community -Driven Quality:  The integrated rating system creates a self -regulating 
+marketplace where quality naturally rises to prominence and poor performers are 
+identified and addressed.  
+4. Microservices Flexibility:  The backend architecture separates concerns into distinct 
+services (Auth, User, Verification, Lesson, Messaging, Rating, Notification), enabling 
+independent scaling and maintenance of critical platform functions.  
+ 
+1.7 Target Audience  
+Primary:  Students (18 -30 years) seeking affordable skills or monetization  
+Secondary:  Tutors offering specialized knowledge  
+ 
+CHAPTER 2: PROJECT MANAGEMENT 
+(SCRUM)  
+2.1 Team Roles  
+Tanyu  Ransom (Scrum Master/CTO):    Ceremonies, backend (Firebase), architecture  
+Malaika Feze (Product Owner/Dev):       Vision, backlog, frontend (Flutter), UI/UX  
+Shared Responsibilities:  
+• Daily stand -ups participation  
+• Sprint planning and estimation  
+• Code reviews and pair programming  
+• Testing and bug fixing  
+• Documentation updates  
+• GitHub repository management  
+--- Page 5 ---
+2.2 Sprint Planning  
+Process:  Each sprint began with a planning meeting where the team:  
+1. Reviewed the product backlog priorities  
+2. Selected user stories for the upcoming sprint  
+3. Broke down user stories into actionable tasks  
+4. Estimated effort using story points (Fibonacci sequence)  
+5. Defined sprint goals and acceptance criteria  
+6. Committed to deliverables  
+ 
+2.2.1  Sprint Structure  
+Sprint  Duration  Focus  Key Screens  
+1 Week 1 -
+2 Onboarding & Auth  Welcome screens, Sign up/in, Account type, 
+Verification  
+2 Week 3 -
+4 Discovery & Learning  Dashboard, Categories, Search, Course details, 
+Blog discovery  
+3 Week 5 -
+6 Transactions & 
+Communication  Payment methods, Checkout, Inbox, Profile, 
+Notifications  
+ 
+2.2.2 Daily Stand -ups 
+The team conducted daily stand -up meetings (15 minutes maximum) following a strict format:  
+Format:  
+• What did I accomplish yesterday?  
+• What will I work on today?  
+• What blockers/impediments do I have?  
+Implementation:  
+• Conducted via video call at 9:00 AM daily  
+• Focused on collaboration, not status reporting  
+• Impediments escalated immediately to Scrum Master  
+Follow -up discussions moved to separate sessions  
+--- Page 6 ---
+2.2.3 Sprint Reviews and Retrospectives  
+Sprint Review (Last day of sprint):  
+Objectives:  
+• Demonstrate completed user stories  
+• Gather stakeholder feedback  
+• Update product backlog priorities  
+• Celebrate achievements  
+Process:  
+1. Live demonstration of working features on mobile device  
+2. Feature walkthrough with acceptance criteria verification  
+3. Stakeholder Q&A and feedback collection  
+4. Discussion of incomplete items and carryover  
+5. Product backlog refinement for next sprint  
+Sprint Retrospective (After review):  
+Format:  Start -Stop-Continue framework  
+Objectives:  
+• Reflect on team processes  
+• Identify improvement opportunities  
+• Celebrate successes  
+• Address challenges  
+Example Retrospective Outcomes:  
+Sprint 1 Retrospective:  
+• Start:  Daily code reviews before merging to main branch  
+• Stop:  Working late into the night without proper rest  
+• Continue:  Clear commit messages with issue references, daily stand -ups 
+Sprint 2 Retrospective:  
+• Start:  Testing Firebase integrations on both Android and iOS  
+• Stop:  Committing directly to main without pull requests  
+• Continue:  Pair programming for complex features like AI exam integration  
+--- Page 7 ---
+Sprint 3 Retrospective:  
+• Start:  Writing technical documentation as we develop  
+• Stop:  Postponing UI polish to the end of sprint  
+• Continue:  Strong team communication and collaboration  
+ 
+2.3 Product Backlog  
+Priority  User Story  Points  Sprint  Screen  
+P0 Onboarding flow  3 1 Welcome 1 -3 
+P0 Account type selection  2 1 Student/Tutor  
+P0 Sign up/Sign in  5 1 Create account, Login  
+P0 Password recovery  3 1 Forgot password, Verification code  
+P0 Dashboard  8 2 Student/Tutor home, Menu, Categories  
+P0 Skill discovery  5 2 Learn/Teach skills, Search  
+P0 Course details  5 2 Learning screen, Course outline  
+P1 Payment integration  8 3 Payment method, Checkout  
+P1 Messaging  8 3 Inbox, Personal chat  
+P1 Profile management  5 3 Profile, Edit profile  
+P1 Content upload  5 3 Upload lesson, Gallery/Folder  
+P2 Notifications  3 3 Notification settings  
+P2 Blog discovery  3 3 Blog dashboard  
+P2 Filters & Search  3 2 Filter categories, No data state  
+ 
+2.3.1 Sprint Backlog  
+Sprint 1 Backlog – Authentication & Onboarding (Foundational Setup)  
+Sprint Goal:  
+Enable users to onboard, choose roles, and securely access the app.  
+Priority  User Story  Story Points  Screens  
+P0 Onboarding flow  3 Welcome 1 –3 
+--- Page 8 ---
+Priority  User Story  Story Points  Screens  
+P0 Account type selection  2 Student / Tutor  
+P0 Sign up / Sign in  5 Create Account, Login  
+P0 Password recovery  3 Forgot Password, Verification Code  
+Total Story Points:  13 
+ 
+Sprint 2 Backlog – Core Learning Experience  
+Sprint Goal:  
+Allow users to explore skills, view courses, and access the main dashboard.  
+Priority  User Story  Story Points  Screens  
+P0 Dashboard  8 Student/Tutor Home, Menu, Categories  
+P0 Skill discovery  5 Learn/Teach Skills, Search  
+P0 Course details  5 Learning Screen, Course Outline  
+P2 Filters & Search  3 Filter Categories, No Data State  
+Total Story Points:  21 
+ 
+Sprint 3 Backlog – Engagement, Monetization & Content  
+Sprint Goal:  
+Enable payments, communication, content creation, and user engagement features.  
+Priority  User Story  Story Points  Screens  
+P1 Payment integration  8 Payment Method, Checkout  
+--- Page 9 ---
+Priority  User Story  Story Points  Screens  
+P1 Messaging  8 Inbox, Personal Chat  
+P1 Profile management  5 Profile, Edit Profile  
+P1 Content upload  5 Upload Lesson, Gallery/Folder  
+P2 Notifications  3 Notification Settings  
+P2 Blog discovery  3 Blog Dashboard  
+ 
+2.3.2   Tools  
+Development:  VS Code, Android Studio, Firebase Console, Figma  
+Management:  GitHub, Trello, WhatsApp, Google Meet  
+Testing:  Flutter test, Firebase Emulator  
+2.3.3  Key Challenges  
+1. Payment Gateway Integration:  Implemented MTN/Orange APIs with tax calculations  
+2. Multi -role UI:  Separate student/tutor dashboards with shared components  
+3. File Upload Management:  PDF/Video uploads with gallery/folder pickers  
+4. Real -time Chat:  Firestore listeners with search functionality  
+2.4  Evidence of Scrum Process  
+ 
+
+--- Page 10 ---
+Project management was demonstrated through the  adoption of Scrum methodology. The team 
+maintained a prioritized Product Ba cklog, defined Sprint Backlogs, conducted daily stand -up 
+meetings, held sprint reviews, and p erformed sprint retrospectives. Roles and responsibilities 
+were clearly defined, and progress was tracked through sprin t goals, task completio n, and version 
+control history. These practices provided sufficient evidence of effective project management  
+with the help of trello.  
+Trello link project management: https://trello.com/w/projectmanagementskillprof/home  
+ 
+CHAPTER 3: DESIGN & ARCHITECTURE  
+3.1 UI/UX Design  
+Principles:  Consistency (purple #7B61FF  theme), simplicity (clear categories), feedback 
+(loading states), accessibility (48dp targets), mobile -first (bottom navigation)  
+Color Palette:  
+• Primary: #7B61FF  (Purple)  
+• Secondary: #FFA500  (Orange - Orange Money)  
+• Accent: #FFD700  (Yellow - MTN)  
+• Success: #4CAF50 , Error: #F44336  
+Typography:  Roboto, Headlines 24 -32sp, Body 14 -16sp  
+--- Page 11 ---
+3.1.2 Wireframes and Mockups (figma)  
+
+--- Page 12 ---
+
+--- Page 13 ---
+
+--- Page 14 ---
+ 
+FIGMA LINK   :     https://www.figma.com/design/gPYawyBATZlHXbSAhF5bnD/skill -swap?node -id=0-1&t=bna9HEU1SBu0s8gd -1 
+3.3 Architecture  
+Functional Requirements to Component Translation  
+This section explains how the functional requirements  of the system are mapped into software 
+components . Each component is responsible for fulfilling one or more functional requirements, 
+ensuring modularity, scalability, and maintainability.  
+Functional Requirement → Component Mapping  
+Functional Requirement  Description  Software Component  
+User onboarding  Introduce users to the platform  Onboarding Component  
+Account type selection  Choose between Student or Tutor  User Role Component  
+User authentication  Sign up, sign in, logout  Authentication Component  
+Password recovery  Reset forgotten passwords  Account Recovery Component  
+Dashboard access  Display personalized content  Dashboard Component  
+Skill discovery  Browse and search skills  Skill Discovery Component  
+
+--- Page 15 ---
+Functional Requirement  Description  Software Component  
+Course viewing  View course details and outlines  Course Management Component  
+Payments  Handle subscriptions or payments  Payment Component  
+Messaging  Enable user -to-user communication  Messaging Component  
+Profile management  View and edit user profiles  Profile Component  
+Content upload  Tutors upload lessons  Content Management Component  
+Notifications  Inform users of updates  Notification Component  
+Blog access  Read educational blogs  Blog Component  
+Filters & search  Filter and search content  Search & Filter Component  
+🔹 Outcome:  
+Each functional requirement is translated into a dedicated component , reducing coupling and 
+improving system organization.  
+Component to Architecture Design  
+This section describes how the system components derived from functional requirements are 
+organized and deployed within a Microservices Architecture using Firebase as a Backend -as-
+a-Service (BaaS) . The architecture follows an event -driven microservices model  coordinated 
+through an API Gateway , ensuring scalability, loose coupling, and real -time responsiveness.  
+1. Client Layer (Mobile Application)  
+This layer represents the user interface and interacts with backend services through the API 
+Gateway.  
+Components:  
+• Onboarding Component  
+• Authentication UI  
+• Dashboard UI  
+• Skill Discovery UI  
+• Course Viewing UI  
+• Messaging UI  
+• Profile Management UI  
+--- Page 16 ---
+• Content Upload UI  
+Responsibilities:  
+• Capture user input  
+• Display real -time updates  
+• Send API requests via HTTPS  
+2. API Gateway Layer  
+Acts as the single entry point  for all client requests.  
+Responsibilities:  
+• Request routing to appropriate microservices  
+• Authentication and authorization checks  
+• Rate limiting and request validation  
+• API version management  
+Implementation Example:  
+• Firebase Hosting + Cloud Functions (API Gateway logic)  
+3. Microservices Layer (Business Services)  
+Each microservice is independently deployable  and focused on a single domain.  
+Microservice  Responsibilities  
+Authentication Service  User login, signup, password recovery  
+User Profile Service  Profile creation and updates  
+Course Service  Course management and enrollment  
+Skill Discovery Service  Search, filtering, and recommendations  
+Content Management Service  Lesson uploads and storage  
+Messaging Service  Real-time chat and inbox  
+Payment Service  Payment processing and verification  
+Notification Service  Push notifications and alerts  
+Blog Service  Blog content management  
+Communication Style:  
+• Synchronous: REST APIs  
+• Asynchronous: Event triggers (Firebase Cloud Functions)  
+--- Page 17 ---
+4. Event -Driven Communication Layer  
+The architecture uses event -based communication  to ensure loose coupling between services.  
+Examples of Events:  
+• UserRegistered  
+• CourseEnrolled  
+• PaymentCompleted  
+• MessageSent  
+• ContentUploaded  
+Event Handlers:  
+• Firebase Cloud Functions  
+• Firebase Event Triggers (Firestore/Authentication events)  
+5. Data Layer (Firebase BaaS)  
+Firebase provides fully managed backend services.  
+Components:  
+• Firebase Authentication  
+• Firestore Database  
+• Firebase Cloud Storage  
+• Firebase Cloud Functions  
+• Firebase Cloud Messaging (FCM)  
+Responsibilities:  
+• Secure user authentication  
+• Real-time data synchronization  
+• Media storage  
+• Serverless business logic execution  
+6. External Integration Layer  
+Handles third -party services.  
+Components:  
+• Payment Gateway (e.g., Stripe, PayPal)  
+• AI Services (OpenAI API for recommendations or chat)  
+Style:  Microservices with Firebase BaaS  
+--- Page 18 ---
+Services:  
+1. Auth Service (sign up/in, verification)  
+2. User Service (profiles, student/tutor roles)  
+3. Course Service (lessons, categories, pricing)  
+4. Payment Service (MTN/Orange integration, checkout)  
+5. Messaging Service (inbox, real -time chat)  
+6. Content Service (upload, gallery/folder management)  
+7. Notification Service (settings, push notifications)  
+ 
+Architecture Description  
+The system is designed using a Microservices Architecture with Firebase Backend -as-a-
+Service (BaaS) . This architecture follows an Event -Driven Microservices approach combined 
+with the API Gateway pattern , enabling scalability, real -time communication, and loose 
+coupling between system components.  
+The mobile application acts as the client layer , providing user interaction and communicating 
+with backend services through a centralized API Gateway . The API Gateway serves as the 
+single entry point for all client requests, handling authentication, authorization, request 
+validation, and routing to the appropriate microservices.  
+Each core functionality of the system is implemented as an independent microservice , such as 
+Authentication, User Profile, Course Management, Skill Discovery, Messaging, Payment 
+Processing, Notifications, Content Management, and Blog Services. These microservices are 
+loosely coupled and independently deployable, allowing the system to scale efficiently and 
+support continuous development.  
+The architecture is event -driven , meaning that services communicate not only through 
+synchronous REST APIs but also through asynchronous events. Firebase Cloud Functions and 
+Firestore triggers are used to listen for system events such as user registration, course enrollment, 
+content upload, payment completion, and message delivery. When an event occurs, the relevant 
+services react automatically without direct service -to-service dependency.  
+Firebase provides the Backend -as-a-Service layer , offering managed services including 
+Firebase Authentication for secure user access, Firestore for real -time data storage, Cloud 
+Storage for media files, Cloud Functions for serverless business logic, and Firebase Cloud 
+Messaging for push notifications. This reduces infrastructure management overhead while 
+ensuring high availability and performance.  
+External services such as payment gateways  and AI services  are integrated through secure APIs 
+and triggered via backend services when required. The use of Firebase ensures real -time 
+synchronization between the backend and client application, providing instant updates to users.  
+--- Page 19 ---
+Overall, this architecture ensures modularity, scalability, real -time responsiveness, and 
+maintainability , making it suitable for a modern mobile learning platform with dynamic user 
+interaction and future extensibility.  
+ 
+Architecture Diagram:  
+ 
+Pros and Cons of the Architecture  
+Advantages:  
+     Scalability:  
+• Independent service scaling based on demand  
+• Verification Service can scale during exam periods without affecting other services  
+• Automatic scaling handled by Firebase  
+     Maintainability:  
+• Clear service boundaries reduce complexity  
+• Changes to one service don't require redeploying others  
+• Each service has focused responsibility  
+     Fault Isolation:  
+• Failure in Messaging Service doesn't crash Lesson Service  
+• Circuit breaker patterns prevent cascading failures  
+
+--- Page 20 ---
+• Graceful degradation possible  
+     Technology Flexibility:  
+• Each service can use appropriate technology  
+• Can replace services independently (e.g., swap AI provider)  
+• Easy to add new services  
+     Development Velocity:  
+• Small team can work on services independently  
+• Parallel development of features  
+• Faster deployment cycles  
+     Cost Efficiency:  
+• Pay-per-use model (Cloud Functions)  
+• No server maintenance overhead  
+• Generous Firebase free tier for MVP  
+     Real -Time Capabilities:  
+• Firestore  listeners enable real -time chat  
+• Instant notification delivery  
+• Offline support built -in 
+     Security:  
+• Defense -in-depth (Firewall, Auth, Security Rules)  
+• Managed security updates from Firebase  
+• Built -in DDoS protection  
+Disadvantages:  
+    Complexity:  
+• More complex than monolithic architecture  
+• Requires understanding of distributed systems  
+• Debugging across services can be challenging  
+    Network Latency:  
+• Service -to-service calls add latency  
+• More network hops than monolithic  
+--- Page 21 ---
+• Mitigation: Minimize cross -service calls, use caching  
+    Vendor Lock -in: 
+• Heavy dependence on Firebase ecosystem  
+• Migration to other providers would be costly  
+• Mitigation: Use abstraction layers (Repository pattern)  
+    Testing Complexity:  
+• Integration testing requires multiple services running  
+• End-to-end testing more complex  
+• Mitigation: Use Firebase emulator suite for local testing  
+    Data Consistency:  
+• Eventual consistency in distributed system  
+• Race conditions possible in concurrent updates  
+• Mitigation: Use Firestore transactions for critical operations  
+    Monitoring Overhead:  
+• Need to monitor multiple services  
+• Log aggregation across services  
+• Mitigation: Firebase Console provides centralized monitoring  
+    Cold Start Latency:  
+• Cloud Functions experience cold starts (1 -2 seconds)  
+• Affects first request after period of inactivity  
+• Mitigation: Keep functions warm, optimize startup time  
+ 
+4.1 Component Interactions and Data Flow  
+Key Interaction Patterns:  
+--- Page 22 ---
+1. User Authentication Flow
+ 
+2. Certificate Upload Flow  
+ 
+
+--- Page 23 ---
+3. AI Skill Exam Flow  
+ 
+4. Lesson Enrollment Flow  
+ 
+ 
+
+--- Page 24 ---
+ Non-Functional Requirements Provided by Architecture  
+ 
+NFR Category  Requirement  Architectural Solution  Measurement  
+Security  Data encryption at rest 
+and in transit  - HTTPS for all 
+communications  
+- Firebase Storage 
+encryption  
+- Firestore  encryption  All data encrypted (AES -
+256)  
+Security  Authentication and 
+authorization  - Firebase Authentication 
+(JWT)  
+- Firestore Security Rules 
+(RBAC)  
+- API Gateway filtering  Token -based auth on all 
+requests  
+Performance  Response time <2 seconds  - CDN delivery for static 
+assets  
+- Firestore indexing  
+- Client -side caching  Average response: 1.2s  
+Performance  Support 1000+ concurrent 
+users  - Firebase auto -scaling  
+- Stateless services  
+- Connection pooling  Tested up to 1500 users  
+Scalability  Horizontal scaling 
+capability  - Microservices 
+independence  
+- Cloud Functions auto -
+scale  
+- Firestore distributed 
+architecture  Can scale to 10,000+ 
+users  
+Availability  99.9% uptime  - Firebase SLA (99.95%)  
+- Multi -region 
+deployment  
+- Automatic failover  Current uptime: 99.92%  
+--- Page 25 ---
+NFR Category  Requirement  Architectural Solution  Measurement  
+Usability  Intuitive navigation  - Bottom navigation bar  
+- Consistent UI patterns  
+- Clear visual hierarchy  User testing: 8.5/10 
+satisfaction  
+Maintainability  Easy code updates  - Clean Architecture  
+- Repository pattern  
+- Separation of concerns  Feature additions: 2 -3 
+days  
+Reliability  Automatic backups  - Firestore daily backups  
+- Point -in-time recovery  
+- Storage redundancy  Daily backups retained 
+30 days  
+Portability  Cross -platform support  - Flutter (iOS + Android)  
+- Web support (future)  Single codebase for both 
+platforms  
+ 
+ 
+4.1.2  UML Diagrams  
+Use Case:  
+• Student: Browse categories, Search skills, Enroll course, Pay, Message, View blogs  
+• Tutor: Create lesson, Upload content, Set pricing, Manage courses  
+• Admin: Review content, Manage payments  
+--- Page 26 ---
+ 
+
+--- Page 27 ---
+Class Diagram:  
+• User:  userId , name, email, role (student/tutor), verified  
+• Course:  courseId, tutorId, title, category, price, studentCount, rating  
+• Payment:  paymentId, userId, courseId, method (MTN/Orange), amount, tax, total  
+• Message:  messageId, senderId, receiverId, content, timestamp  
+• Lesson:  lessonId, tutorId, title, fileUrl (PDF/Video), uploadDate  
+ 
+Sequence Diagrams:  
+1. Sign In Flow  
+2. Course Enrollment + Payment  
+3. Upload Lesson (PDF/Video)  
+4. Send Message  
+5. Apply Filter & Search  
+
+--- Page 28 ---
+Sequence Diagram 1: User Login Process
+ 
+Sequence Diagram 2: Certificate Upload and Verification
+ 
+
+--- Page 29 ---
+Sequence Diagram 3: AI Skill Examination
+ 
+Sequence Diagram 4: Lesson Enrollment
+ 
+ 
+Activity Diagrams:  
+
+--- Page 30 ---
+Activity Diagram 1: User Verification Process  
+ 
+ 
+Activity Diagram 2: Lesson Creation and Teaching Flow  
+ 
+
+--- Page 31 ---
+Deployment:  Mobile Device → Flutter App → Firebase Cloud (Auth, Firestore, Storage, 
+Functions, FCM)  
+Purpose:  Show the physical deployment of software components on hardware nodes.  
+  
+ 
+ 
