@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/welcome/welcome_screen.dart';
+import 'screens/welcome/landing_screen.dart';
 import 'screens/auth/sign_in_screen.dart';
 import 'screens/auth/sign_up_screen.dart';
 import 'screens/auth/forgot_password_screen.dart';
@@ -33,8 +34,8 @@ class SkillSwapApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
-      // If already logged in, go straight to home
-      initialRoute: session.isLoggedIn ? '/home' : '/welcome',
+      // Always start from the landing page as requested
+      initialRoute: '/landing',
       onGenerateRoute: (settings) {
         if (settings.name == '/home') {
           return MaterialPageRoute(
@@ -49,6 +50,7 @@ class SkillSwapApp extends StatelessWidget {
         return null;
       },
       routes: {
+        '/landing': (context) => const LandingScreen(),
         '/welcome': (context) => const WelcomeScreen(),
         '/onboarding': (context) => const OnboardingScreen(),
         '/signin': (context) => const SignInScreen(),
