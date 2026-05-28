@@ -1,5 +1,6 @@
 name: Deploy Backend to Contabo VPS
 
+# Triggered on push to main branch
 on:
   push:
     branches:
