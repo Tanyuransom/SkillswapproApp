@@ -27,8 +27,16 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
   void _fetchInitialData() async {
     try {
+      final session = SessionService();
+      await session.init();
       final cats = await ApiService.getCategories();
-      final courses = await ApiService.getCourses();
+      
+      final specialtyFilter = session.academicSpecialty;
+      
+      final courses = await ApiService.getCourses(
+        level: session.academicLevel,
+        specialty: specialtyFilter,
+      );
       if (mounted) {
         setState(() {
           _categories = cats;
@@ -48,13 +56,24 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   Future<void> _fetchFilteredCourses(String query, String categoryName) async {
     setState(() => _isLoading = true);
     try {
+      final session = SessionService();
       String? catId;
       if (categoryName != 'All') {
         final cat = _categories.firstWhere((c) => c['name'] == categoryName, orElse: () => null);
         if (cat != null) catId = cat['id'];
       }
 
-      final results = await ApiService.getCourses(categoryId: catId, query: query.isEmpty ? null : query);
+      String? specialtyFilter = session.academicSpecialty;
+      if (categoryName != 'All' && ['ICT', 'ISN', 'CS', 'SEN', 'CYS', 'REN', 'JMC', 'BMS'].contains(categoryName)) {
+        specialtyFilter = categoryName;
+      }
+
+      final results = await ApiService.getCourses(
+        categoryId: catId, 
+        query: query.isEmpty ? null : query,
+        level: session.academicLevel,
+        specialty: specialtyFilter,
+      );
       if (mounted) {
         setState(() {
           _filteredCourses = results;
@@ -190,7 +209,10 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const SizedBox(height: 4),
-                                Text('Instructor: ${course['instructorId']?.substring(0,8)}...', style: const TextStyle(fontSize: 12)),
+                                Text(
+                                  'Instructor: ${course['instructorName'] ?? (course['instructorId']?.substring(0, 8) ?? 'Unknown')}...',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [

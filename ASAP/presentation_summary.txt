@@ -1,0 +1,41 @@
+SkillSwap Pro Architecture & Tech Stack Summary
+
+SkillSwap Pro is built on a Modern Microservices Architecture, consisting of 12 independent services orchestrated via Docker. This ensures that the platform is scalable, resilient, and modular.
+
+📱 Frontend (Client Application)
+- Language: Dart
+- Framework: Flutter (for high-performance, native cross-platform experience).
+- State Management: Custom Session Management with persistent storage.
+- Networking: RESTful API communication via the http package with a centralized ApiService and UrlHelper for dynamic IP resolution.
+
+🎥 The "Shorts" Feature (Micro-Learning)
+- Video Playback: Leverages native Android ExoPlayer (via the video_player plugin) optimized for smooth, TikTok-style vertical scrolling.
+- Media Handling:
+    - Multipart Uploads: Efficiently handles large video files.
+    - Static Serving: Videos are served through the API Gateway, which proxies requests to the shorts-service storage.
+- Backend: Dedicated Shorts Microservice managing video metadata and file paths.
+
+💬 Real-Time Messaging & Notifications
+- Messaging Architecture: A dedicated Messaging Microservice that handles peer-to-peer communication between Students and Tutors.
+- Identity Persistence: Integrates with the User Service to display real-time names, roles (Student/Tutor), and avatars within the chat.
+- Notifications: A centralized Notification Service that triggers alerts for new messages and enrollments using an internal service-to-service communication loop.
+
+⚙️ Backend (The Engine)
+- Runtime: Node.js
+- Language: TypeScript (ensuring type safety across all 12 services).
+- Web Framework: Express.js
+- Database: PostgreSQL 15 (Independent databases for each microservice to ensure data decoupling).
+- ORM: TypeORM for robust database interactions and migrations.
+- Gateway: A custom Express API Gateway that acts as a single entry point, handling routing, CORS, and request proxying.
+
+🔐 Security & Auth
+- Authentication: JWT (JSON Web Tokens) for secure session management.
+- Identity: Google OAuth 2.0 Integration for seamless onboarding.
+- Roles: Strict Role-Based Access Control (RBAC) for Students, Tutors, and Admins.
+
+🛠️ Infrastructure & DevOps
+- Containerization: Fully Dockerized environment using docker-compose.
+- Development Workflow: ADB over WiFi for seamless wireless mobile testing and deployment.
+
+💡 Key Talking Point for your Presentation:
+"The core strength of SkillSwap Pro lies in its decoupled microservices architecture. By separating features like 'Shorts' and 'Messaging' into their own services, we've created a platform where a failure in one area doesn't bring down the entire system, and each feature can be scaled independently as the user base grows."

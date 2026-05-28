@@ -1,0 +1,264 @@
+=== PAGE 1 ===
+ 
+ 
+1 
+ ICT FACULTY  
+COURSE ALLOCATION SPRING 202 6 
+ 
+Year One  – BSc. ICT , ISN, CS, SEN, CYS  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Instructor  Course Status  
+ 
+ 
+Year 1 Spring  
+ Discrete Mathematics  MTH 1221  Dr. Keyampi  Compulsory  
+Object Oriented Programming with C++  CSC 1221   Dr Nkandeu  Compulsory  
+Introduction to Networking  ISN 1231   Engr. M ughe  Compulsory  
+Algorithms and Data Structures II  CSC 1222  Engr. Mughe  Compulsory  
+Research Methodology for Computer Science Engineers  CSC  1121 Dr. Fot sing Compulsory  
+Real Analysis II  MTH 1223  Engr. Nebasi  Compulsory  
+Knowledge Leadership and African Development  BMS 1232  BMS  Requirement  
+ 
+Year Two – BSc. ICT , ISN, CS, SEN, CYS  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Instructor  Course Status  
+ 
+ 
+Year 2 Spring  
+ Object Oriented Analysis, Design and Implementation  SEN 2241  Engr. Palma  Compulsory  
+Database Management Systems  ICT 2211  Engr. Tanwi  Compulsory  
+Java Programming II  SEN 2242  Engr.  Mughe  Compulsory  
+
+=== PAGE 2 ===
+ 
+ 
+2 
+ Computational Mathematics  MTH 2222  Engr. Andrew  Compulsory  
+Operating Systems  CSC 2221  Engr. Tanwi  Compulsory  
+Civics and Ethics  CVE2200  BMS  Requirement  
+Computer Networking and Security  ISN 2231  Engr. Nebasi  Elective  
+ Introduction to Game Development  SEN 2243   Engr. Moun e Elective  
+ Introduction to IOT and Embedded Systems  CSC 2222  Dr. Keyampi  Elective  
+ 
+Year Three – BSc. ICT  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Instructor  Course Status  
+ 
+ 
+Year 3 Spring  
+ IT Infrastructure Management  ICT 3211  Dr. Fosso  Compulsory  
+Android Application Development  SEN 3242  Engr. Moune  Compulsory  
+Advanced Web Development  SEN 3243  Engr.  Tanwi  Compulsory  
+Software Architecture  SEN 3244  Engr. Palma  Compulsory  
+Advanced Database Systems  ICT 3212  Engr. Moune  Compulsory  
+ Introduction to Data Science  CSC 3221  Dr. Fotsing  Compulsory  
+ 
+Year Four – BSc. ICT  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+
+=== PAGE 3 ===
+ 
+ 
+3 
+ Year /Semester  Course Titles  Course Codes  Credit Value  Course Status  
+ 
+ 
+Year 4 Spring  
+ Industrial Internship  ICT 4211  6 Compulsory  
+Individual Research Project  ICT 4212  12 Compulsory  
+ 
+Year Three – BSc. Software Engineering  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Instructor  Course Status  
+ 
+ 
+Year 3 Spring  
+ Software Validation and Verification  SEN 3241  Engr. Palma  Compulsory  
+Android Application Development  SEN 3242  Engr. Moune  Compulsory  
+Advanced Web Development  SEN 3243  Engr. Tanwi  Compulsory  
+Software Architecture  SEN 3244  Engr. Palma  Compulsory  
+Advanced Database Systems  ICT 3212  Engr. Moune Compulsory  
+Introduction to Data Science  CSC 3221  Dr. Fotsing  Compulsory  
+ 
+Year Four – BSc. Software Engineering  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Credit Value  Course Status  
+ 
+Year 4 Spring  
+ Industrial Internship  ICT 4211  6 Compulsory  
+Individual Research Project  ICT 4212  12 Compulsory  
+
+=== PAGE 4 ===
+ 
+ 
+4 
+  
+Year T hree – BSc. Computer Science  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Instructor  Course Status  
+ 
+ 
+Year 3 Spring  
+ Software Validation and Verification  SEN 3241  Engr. Palma  Compulsory  
+Android Application Development  SEN 3242  Engr. Moune  Compulsory  
+Software Architecture  SEN 3244  Engr. Palma  Compulsory  
+Advanced Web Development  SEN 3243  Engr. Tanwi  Compulsory  
+Introduction to Data Science  CSC 3221  Dr. Fotsing  Compulsory  
+ Network/Computer Forensics  CYS 3251  Engr. Nebasi  Compulsory  
+ 
+Year Four – BSc. Computer Science  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Credit Value  Course Status  
+ 
+ 
+Year 4 Spring  
+ Industrial Internship  ICT 4211  6 Compulsory  
+Individual Research Project  ICT 4212  12 Compulsory  
+ 
+ 
+
+=== PAGE 5 ===
+ 
+ 
+5 
+ Year Three – BSc. Information System & Networking  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Instructor  Course Status  
+ 
+ 
+Year 3 Spring  
+ Network Management  ISN 3231  Engr. Nebasi  Compulsory  
+Advanced Web Development  SEN 3243  Engr. Tanwi  Compulsory  
+CCNA2  ISN 3232  Engr. Andrew  Compulsory  
+Network/Computer Forensics  CYS 3251  Engr. Nebasi  Compulsory  
+Android Application Development  SEN 3242  Engr. Moune  Compulsory  
+ Introduction to Data Science  CSC 3221  Dr. Fotsing  Compulsory  
+ 
+Year Four – BSc. Information System & Networking  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Credit Value  Course Status  
+ 
+ 
+Year 4 Spring  
+ Industrial Internship  ICT 4211  6 Compulsory  
+Individual Research Project  ICT 4212  12 Compulsory  
+ 
+ 
+ 
+
+=== PAGE 6 ===
+ 
+ 
+6 
+ Year Three – BSc. Cybersecurity  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Instructor  Course Status  
+ 
+ 
+Year 3 Spring  
+ Network Management  ISN 3231  Engr. Nebasi  Compulsory  
+Advanced Web Development  SEN 3243  Engr. Tanwi  Compulsory  
+CCNA2  ISN 3232  Engr. Andrew  Compulsory  
+Network/Computer Forensics  CYS 3251  Engr.  Nebasi  Compulsory  
+Android Application Development  SEN 3242  Engr. Moune  Compulsory  
+ Introduction to Data Science  CSC 3221  Dr. Fotsing  Com pulsory  
+ 
+Year Four – BSc. Cyber Security  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Credit Value  Course Status  
+ 
+Year 4 Spring  
+ Industrial Internship  ICT 4211  6 Compulsory  
+Individual Research Project  ICT 4212  12 Compulsory  
+ 
+ 
+ 
+ 
+ 
+
+=== PAGE 7 ===
+ 
+ 
+7 
+ Year T hree – BSc. Renewable Energy  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Instructors  Course Status  
+ 
+ 
+Year 3 Spring  
+ Project Management  BMS 4238  Engr. Moune  Compulsory  
+Hydrogen and Fuel Cells  REN 3261  Engr. Ridley  Compulsory  
+Application of Renewable Energy Software  REN 3262  Engr. Co lbert  Compulsory  
+Sustainable Energy Management and Climate Change  REN 3263  Engr. R idley  Compulsory  
+Power Plant Technology  REN 3264  Engr. Colbert  Compulsory  
+Embedded Systems  REN 3265  Dr. Nkandeu  Compulsory  
+ 
+ 
+Year  Four – BSc. Renewable Energy  
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Credit Value  Course Status  
+ 
+ 
+Year 4 Spring  
+ Industrial Attachment  REN 4261  6 Compulsory  
+Final Year  Project  REN 4262  12 Compulsory  
+ 
+ 
+ 
+ 
+ 
+
+=== PAGE 8 ===
+ 
+ 
+8 
+ Year Two – BSc. Applied ICT in Journalism and Mass Communication    
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+Year /Semester  Course Titles  Course Codes  Instructors  Course Status  
+ 
+ 
+Year 2 Spring  
+ Mobile Application Development for Journalists  JMC 2271  Dr. Nkandeu  Compulsory  
+Newspaper Editing and Printing  JMC 2272  Mme Agn ang Compulsory  
+Radio and TV Programme Writing  JMC 2273  Mme Tita  Compulsory  
+Digital TV Production II  JMC 2274  Mr. Betangacho  Compulsory  
+Digital Radio Production II  JMC 2275  Mr. Betangacho  Compulsory  
+Music Production  JMC 2276  Mme Tita  Compulsory  
+ Civics and Ethics  CVE2200  BMS  Requirement  
+ 
+ 
+Year T hree – BSc. Applied ICT in Journalism and Mass Communication    
+C =Compulsory, E= Elective, R=University’s Requirement  
+ 
+ 
+Year /Semester  Course Titles  Course Codes  Instructor  Course Status  
+ 
+ Digital Marketing  JMC 3271  Mr. Ekane  Compulsory  
+Cyber Journalism  JMC 3272  Mme Tita  Compulsory  
+
+=== PAGE 9 ===
+ 
+ 
+9 
+ Year 3 Spring  
+ Research Methods in Media  JMC 3273  Mme Tita  Compulsory  
+Entrepreneurship in Media  JMC 3274  Dr. Yong  Compulsory  
+Film & Documentary Making  JMC 3275  Mme Agnang   Compulsory  
+Sociology & Psychology in Media  JMC 3276  Dr. Yong  Compulsory  
+ 
+

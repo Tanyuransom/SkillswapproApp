@@ -1,29 +1,36 @@
 import { Request, Response } from "express";
 import { AppDataSource } from "../data-source";
 import { Course } from "../entities/Course";
-import { Enrollment } from "../entities/Enrollment";
-import { Notification } from "../entities/Notification";
-import { Message } from "../entities/Message";
-import { ILike } from "typeorm";
-import axios from "axios";
-
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || "http://auth-service:3001";
+import { CourseReview } from "../entities/CourseReview";
+import { ILike, Like } from "typeorm";
 
 export class CourseController {
   static async getAll(req: Request, res: Response) {
     try {
-      const { categoryId, query } = req.query;
+      const { categoryId, query, level, specialty } = req.query;
+      console.log(`Searching courses with query: "${query}", categoryId: "${categoryId}", level: "${level}", specialty: "${specialty}"`);
       const courseRepository = AppDataSource.getRepository(Course);
       
-      const where: any = {};
-      if (categoryId) {
-        where.categoryId = categoryId;
-      }
-      if (query) {
-        where.title = ILike(`%${query}%`);
-      }
+      const levelFilter = level ? parseInt(level as string) : undefined;
       
-      const courses = await courseRepository.find({ where });
+      const where: any = query ? [
+        { title: ILike(`%${query}%`), ...(categoryId ? { categoryId } : {}), ...(levelFilter ? { level: levelFilter } : {}), ...(specialty ? { specialty: ILike(`%${specialty as string}%`) } : {}) },
+        { description: ILike(`%${query}%`), ...(categoryId ? { categoryId } : {}), ...(levelFilter ? { level: levelFilter } : {}), ...(specialty ? { specialty: ILike(`%${specialty as string}%`) } : {}) }
+      ] : { 
+        ...(categoryId ? { categoryId } : {}), 
+        ...(levelFilter ? { level: levelFilter } : {}),
+        ...(specialty ? { specialty: ILike(`%${specialty as string}%`) } : {})
+      };
+      
+      // If there is a query, rank by popularity and rating
+      const order: any = query ? {
+        averageRating: "DESC",
+        reviewCount: "DESC",
+        viewsCount: "DESC"
+      } : { createdAt: "DESC" };
+
+      const courses = await courseRepository.find({ where, order });
+      console.log(`Found ${courses.length} courses`);
       res.json(courses);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch courses" });
@@ -44,6 +51,21 @@ export class CourseController {
     }
   }
 
+  // Internal Endpoint: Fetch for other services (e.g., Enrollment Service)
+  static async getByIdInternal(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const courseRepository = AppDataSource.getRepository(Course);
+      const course = await courseRepository.findOneBy({ id: id as any });
+      if (!course) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+      res.json(course);
+    } catch (error) {
+      res.status(500).json({ error: "Internal course fetch failed" });
+    }
+  }
+
   static async getTutorCourses(req: Request, res: Response) {
     try {
       const { tutorId } = req.params;
@@ -60,7 +82,20 @@ export class CourseController {
 
   static async create(req: Request, res: Response) {
     try {
-      const { title, description, price, instructorId, imageUrl, categoryId } = req.body;
+      const { 
+        title, 
+        description, 
+        price, 
+        instructorId, 
+        imageUrl, 
+        categoryId,
+        level,
+        instructorName,
+        instructorAvatarUrl,
+        specialty,
+        semester 
+      } = req.body;
+      
       const courseRepository = AppDataSource.getRepository(Course);
       const course = courseRepository.create({
         title,
@@ -69,6 +104,11 @@ export class CourseController {
         instructorId,
         imageUrl,
         categoryId,
+        level: level || 1,
+        specialty,
+        instructorName,
+        instructorAvatarUrl,
+        semester,
       });
       await courseRepository.save(course);
       res.status(201).json(course);
@@ -77,190 +117,171 @@ export class CourseController {
     }
   }
 
-  static async getStats(req: Request, res: Response) {
+  static async getTrending(req: Request, res: Response) {
     try {
-      const { tutorId } = req.query;
-      const enrollmentRepository = AppDataSource.getRepository(Enrollment);
-      
-      let query = enrollmentRepository.createQueryBuilder("enrollment").select("DISTINCT(enrollment.studentId)");
-      
-      if (tutorId) {
-        query = query.where("enrollment.instructorId = :tutorId", { tutorId });
-      }
-      
-      const studentCount = await query.getCount();
-      res.json({ activeStudents: studentCount });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch stats" });
-    }
-  }
-
-  static async getTutorStudents(req: Request, res: Response) {
-    try {
-      const { tutorId } = req.params;
-      const enrollmentRepository = AppDataSource.getRepository(Enrollment);
-      const enrollments = await enrollmentRepository.find({
-        where: { instructorId: tutorId },
-        order: { createdAt: "DESC" }
-      });
-
-      if (enrollments.length === 0) {
-        return res.json([]);
-      }
-
-      // Fetch student names from auth-service
-      const studentIds = Array.from(new Set(enrollments.map(e => e.studentId)));
-      try {
-        const response = await axios.post(`${AUTH_SERVICE_URL}/auth/batch`, { ids: studentIds });
-        const userMap = new Map<string, any>(response.data.map((u: any) => [u.id, { name: u.fullName, avatar: u.avatarUrl }]));
-        
-        const enrichedEnrollments = enrollments.map(e => {
-          const u = userMap.get(e.studentId);
-          return {
-            ...e,
-            studentName: u?.name || "Unknown Student",
-            studentAvatar: u?.avatar
-          };
-        });
-        
-        return res.json(enrichedEnrollments);
-      } catch (err) {
-        console.error("Failed to fetch student names:", err);
-        return res.json(enrollments);
-      }
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch enrolled students" });
-    }
-  }
-
-  static async enroll(req: Request, res: Response) {
-    try {
-      const { courseId, studentId } = req.body;
+      const { level, specialty } = req.query;
       const courseRepository = AppDataSource.getRepository(Course);
-      const enrollmentRepository = AppDataSource.getRepository(Enrollment);
-      const notificationRepository = AppDataSource.getRepository(Notification);
+      const levelFilter = level ? parseInt(level as string) : undefined;
 
-      const course = await courseRepository.findOneBy({ id: courseId as any });
+      const trending = await courseRepository.find({
+        where: {
+          ...(levelFilter ? { level: levelFilter } : {}),
+          ...(specialty ? { specialty: Like(`%${specialty as string}%`) } : {})
+        },
+        order: { viewsCount: "DESC" },
+        take: 10
+      });
+      res.json(trending);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch trending courses" });
+    }
+  }
+
+  static async incrementViews(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const courseRepository = AppDataSource.getRepository(Course);
+      const course = await courseRepository.findOneBy({ id: id as any });
+      
       if (!course) {
         return res.status(404).json({ error: "Course not found" });
       }
 
-      const existing = await enrollmentRepository.findOneBy({ courseId, studentId } as any);
-      if (existing) {
-        return res.status(400).json({ error: "Already enrolled" });
+      course.viewsCount = (course.viewsCount || 0) + 1;
+      await courseRepository.save(course);
+      
+      res.json({ success: true, viewsCount: course.viewsCount });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to increment views" });
+    }
+  }
+
+  static async addMaterial(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { title, url, type } = req.body;
+      const courseRepository = AppDataSource.getRepository(Course);
+      
+      const course = await courseRepository.findOneBy({ id: id as any });
+      if (!course) {
+        return res.status(404).json({ error: "Course not found" });
       }
 
-      const enrollment = enrollmentRepository.create({
-        courseId,
-        studentId,
-        instructorId: course.instructorId,
-      });
+      const newMaterial = { title, url, type, addedAt: new Date().toISOString() };
+      
+      if (!course.materials) {
+        course.materials = [];
+      }
+      
+      course.materials.push(newMaterial);
+      await courseRepository.save(course);
 
-      await enrollmentRepository.save(enrollment);
-
-      // Create notification for tutor
-      const notification = notificationRepository.create({
-        userId: course.instructorId,
-        title: "New Student Enrolled!",
-        message: `A new student has joined your course: ${course.title}`,
-        type: "enrollment",
-      });
-      await notificationRepository.save(notification);
-
-      res.status(201).json(enrollment);
+      res.status(200).json({ success: true, course });
     } catch (error) {
-      res.status(500).json({ error: "Enrollment failed" });
+      res.status(500).json({ error: "Failed to add course material", details: error });
+    }
+  }
+  static async delete(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const courseRepository = AppDataSource.getRepository(Course);
+      const course = await courseRepository.findOneBy({ id: id as any });
+      
+      if (!course) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      await courseRepository.remove(course);
+      res.json({ success: true, message: "Course deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete course" });
     }
   }
 
-  // Notification Methods
-  static async getNotifications(req: Request, res: Response) {
+  static async addReview(req: Request, res: Response) {
     try {
-      const { userId } = req.params;
-      const notificationRepository = AppDataSource.getRepository(Notification);
-      const notifications = await notificationRepository.find({
-        where: { userId },
+      const { id } = req.params;
+      const { userId, userName, rating, comment } = req.body;
+      
+      const courseRepository = AppDataSource.getRepository(Course);
+      const reviewRepository = AppDataSource.getRepository(CourseReview);
+      
+      const course = await courseRepository.findOneBy({ id: id as any });
+      if (!course) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      const review = reviewRepository.create({
+        courseId: course.id,
+        userId,
+        userName,
+        rating,
+        comment
+      });
+      await reviewRepository.save(review);
+
+      // Recalculate average rating
+      const allReviews = await reviewRepository.find({ where: { courseId: course.id } });
+      const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
+      course.averageRating = totalRating / allReviews.length;
+      course.reviewCount = allReviews.length;
+      
+      await courseRepository.save(course);
+
+      res.status(201).json(review);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to add review" });
+    }
+  }
+
+  static async getReviews(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const reviewRepository = AppDataSource.getRepository(CourseReview);
+      
+      const reviews = await reviewRepository.find({
+        where: { courseId: id },
         order: { createdAt: "DESC" }
       });
-      res.json(notifications);
+      
+      res.json(reviews);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch notifications" });
+      res.status(500).json({ error: "Failed to fetch reviews" });
     }
   }
 
-  static async markNotificationAsRead(req: Request, res: Response) {
+  static async deleteAll(req: Request, res: Response) {
+    try {
+      const courseRepository = AppDataSource.getRepository(Course);
+      await courseRepository.delete({});
+      res.json({ success: true, message: "All courses deleted" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete all courses" });
+    }
+  }
+
+  static async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const notificationRepository = AppDataSource.getRepository(Notification);
-      await notificationRepository.update(id, { isRead: true });
-      res.json({ success: true });
+      const { title, description, price, categoryId, level, specialty, semester } = req.body;
+      const courseRepository = AppDataSource.getRepository(Course);
+      const course = await courseRepository.findOneBy({ id: id as any });
+      if (!course) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      if (title !== undefined) course.title = title;
+      if (description !== undefined) course.description = description;
+      if (price !== undefined) course.price = parseFloat(price);
+      if (categoryId !== undefined) course.categoryId = categoryId;
+      if (level !== undefined) course.level = parseInt(level);
+      if (specialty !== undefined) course.specialty = specialty;
+      if (semester !== undefined) course.semester = semester;
+
+      await courseRepository.save(course);
+      res.json(course);
     } catch (error) {
-      res.status(500).json({ error: "Failed to update notification" });
-    }
-  }
-
-  static async markAllNotificationsAsRead(req: Request, res: Response) {
-    try {
-      const { userId } = req.params;
-      const notificationRepository = AppDataSource.getRepository(Notification);
-      await notificationRepository.update({ userId }, { isRead: true });
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update notifications" });
-    }
-  }
-
-  // Messaging Methods
-  static async getMessages(req: Request, res: Response) {
-    try {
-      const { userId } = req.params;
-      const messageRepository = AppDataSource.getRepository(Message);
-      const messages = await messageRepository.find({
-        where: [
-          { senderId: userId },
-          { receiverId: userId }
-        ],
-        order: { createdAt: "ASC" }
-      });
-      res.json(messages);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch messages" });
-    }
-  }
-
-  static async sendMessage(req: Request, res: Response) {
-    try {
-      const { senderId, receiverId, content, senderName } = req.body;
-      const messageRepository = AppDataSource.getRepository(Message);
-      const notificationRepository = AppDataSource.getRepository(Notification);
-
-      const message = messageRepository.create({ senderId, receiverId, content });
-      await messageRepository.save(message);
-
-      // Create notification for receiver
-      const notification = notificationRepository.create({
-        userId: receiverId,
-        title: "New Message",
-        message: `${senderName || 'Someone'} sent you a message: ${content.substring(0, 30)}...`,
-        type: "message",
-      });
-      await notificationRepository.save(notification);
-
-      res.status(201).json(message);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to send message" });
-    }
-  }
-
-  static async markMessageAsRead(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const messageRepository = AppDataSource.getRepository(Message);
-      await messageRepository.update(id, { isRead: true });
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update message" });
+      res.status(500).json({ error: "Failed to update course" });
     }
   }
 }
-

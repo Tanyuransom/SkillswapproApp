@@ -1,59 +1,269 @@
 version: '3.8'
 
 services:
-  db:
+  # --- DATABASES (One per service for true independence) ---
+  auth-db:
     image: postgres:15-alpine
-    container_name: skillprof-postgres
-    restart: always
+    container_name: skillprof-auth-db
     environment:
       POSTGRES_USER: skilluser
       POSTGRES_PASSWORD: skillpassword
-      POSTGRES_DB: skillprof_db
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      POSTGRES_DB: identity_db
+    ports: ["5434:5432"]
+    volumes: ["auth_db_data:/var/lib/postgresql/data"]
 
-  adminer:
-    image: adminer
-    container_name: skillprof-adminer
-    restart: always
-    ports:
-      - "8080:8080"
+  user-db:
+    image: postgres:15-alpine
+    container_name: skillprof-user-db
+    environment:
+      POSTGRES_USER: skilluser
+      POSTGRES_PASSWORD: skillpassword
+      POSTGRES_DB: user_db
+    ports: ["5435:5432"]
+    volumes: ["user_db_data:/var/lib/postgresql/data"]
 
-  auth-service:
-    build:
-      context: ./auth-service
+  course-db:
+    image: postgres:15-alpine
+    container_name: skillprof-course-db
+    environment:
+      POSTGRES_USER: skilluser
+      POSTGRES_PASSWORD: skillpassword
+      POSTGRES_DB: course_db
+    ports: ["5436:5432"]
+    volumes: ["course_db_data:/var/lib/postgresql/data"]
+
+  enrollment-db:
+    image: postgres:15-alpine
+    container_name: skillprof-enrollment-db
+    environment:
+      POSTGRES_USER: skilluser
+      POSTGRES_PASSWORD: skillpassword
+      POSTGRES_DB: enrollment_db
+    ports: ["5437:5432"]
+    volumes: ["enrollment_db_data:/var/lib/postgresql/data"]
+
+  level-db:
+    image: postgres:15-alpine
+    container_name: skillprof-level-db
+    environment:
+      POSTGRES_USER: skilluser
+      POSTGRES_PASSWORD: skillpassword
+      POSTGRES_DB: level_db
+    ports: ["5438:5432"]
+    volumes: ["level_db_data:/var/lib/postgresql/data"]
+
+
+  # Common DB for smaller services to save resources while remaining logically separated
+  common-db:
+    image: postgres:15-alpine
+    container_name: skillprof-common-db
+    environment:
+      POSTGRES_USER: skilluser
+      POSTGRES_PASSWORD: skillpassword
+      POSTGRES_DB: common_db
+    ports: ["5433:5432"]
+    volumes: 
+      - common_db_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+
+  # --- INFRASTRUCTURE ---
+  gateway-service:
+    build: 
+      context: ./gateway-service
       dockerfile: Dockerfile
-    container_name: skillprof-auth-service
+    container_name: skillprof-gateway
     ports:
-      - "3001:3001"
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    depends_on:
+      - identity-service
+      - course-service
+    init: true
+    restart: always
+
+  # --- AUTHENTICATION & USERS ---
+  identity-service:
+    build: { context: ./identity-service }
+    container_name: skillprof-identity-service
+    ports: ["3001:3001"]
     environment:
       - PORT=3001
-      - DATABASE_URL=postgres://skilluser:skillpassword@db:5432/skillprof_db
+      - DATABASE_URL=postgres://skilluser:skillpassword@auth-db:5432/identity_db
       - JWT_SECRET=yoursecretkey
       - GOOGLE_CLIENT_ID=103593137684-3uitoc6guj875oiks3r89s5i0kbp19oh.apps.googleusercontent.com
-    depends_on:
-      - db
+    depends_on: [auth-db]
+    init: true
     restart: always
-    volumes:
-      - ./auth-service/uploads:/app/uploads
 
+  user-service:
+    build: { context: ./user-service }
+    container_name: skillprof-user-service
+    ports: ["3003:3003"]
+    environment:
+      - PORT=3003
+      - DATABASE_URL=postgres://skilluser:skillpassword@user-db:5432/user_db
+      - JWT_SECRET=yoursecretkey
+      - GOOGLE_CLIENT_ID=103593137684-3uitoc6guj875oiks3r89s5i0kbp19oh.apps.googleusercontent.com
+    volumes: ["./user-service/uploads:/app/uploads"]
+    depends_on: [user-db]
+    init: true
+    restart: always
+
+  # --- CONTENT & COURSES ---
   course-service:
-    build:
-      context: ./course-service
-      dockerfile: Dockerfile
+    build: { context: ./course-service }
     container_name: skillprof-course-service
-    ports:
-      - "3002:3002"
+    ports: ["3002:3002"]
     environment:
       - PORT=3002
-      - DATABASE_URL=postgres://skilluser:skillpassword@db:5432/skillprof_db
-    depends_on:
-      - db
+      - DATABASE_URL=postgres://skilluser:skillpassword@course-db:5432/course_db
+      - JWT_SECRET=yoursecretkey
+      - GOOGLE_CLIENT_ID=103593137684-3uitoc6guj875oiks3r89s5i0kbp19oh.apps.googleusercontent.com
+    volumes: ["./course-service/uploads:/app/uploads"]
+    depends_on: [course-db]
+    init: true
     restart: always
-    volumes:
-      - ./course-service/uploads:/app/uploads
+
+  category-service:
+    build: { context: ./category-service }
+    container_name: skillprof-category-service
+    ports: ["3004:3004"]
+    environment:
+      - PORT=3004
+      - DATABASE_URL=postgres://skilluser:skillpassword@common-db:5432/category_db
+    depends_on: [common-db]
+    init: true
+    restart: always
+
+  shorts-service:
+    build: { context: ./shorts-service }
+    container_name: skillprof-shorts-service
+    ports: ["3005:3005"]
+    environment:
+      - PORT=3005
+      - DATABASE_URL=postgres://skilluser:skillpassword@common-db:5432/shorts_db
+    volumes: ["./shorts-service/uploads:/app/uploads"]
+    depends_on: [common-db]
+    init: true
+    restart: always
+
+  like-service:
+    build: { context: ./like-service }
+    container_name: skillprof-like-service
+    ports: ["3014:3014"]
+    environment:
+      - PORT=3014
+      - DATABASE_URL=postgres://skilluser:skillpassword@common-db:5432/like_db
+    depends_on: [common-db]
+    init: true
+    restart: always
+
+  comment-service:
+    build: { context: ./comment-service }
+    container_name: skillprof-comment-service
+    ports: ["3015:3015"]
+    environment:
+      - PORT=3015
+      - DATABASE_URL=postgres://skilluser:skillpassword@common-db:5432/comment_db
+    depends_on: [common-db]
+    init: true
+    restart: always
+
+  # --- COMMUNICATION ---
+  messaging-service:
+    build: { context: ./messaging-service }
+    container_name: skillprof-messaging-service
+    ports: ["3006:3006"]
+    environment:
+      - PORT=3006
+      - DATABASE_URL=postgres://skilluser:skillpassword@common-db:5432/messaging_db
+    depends_on: [common-db]
+    init: true
+    restart: always
+
+  notification-service:
+    build: { context: ./notification-service }
+    container_name: skillprof-notification-service
+    ports: ["3007:3007"]
+    environment:
+      - PORT=3007
+      - DATABASE_URL=postgres://skilluser:skillpassword@common-db:5432/notification_db
+    depends_on: [common-db]
+    init: true
+    restart: always
+
+  # --- SPECIALIZED ---
+  enrollment-service:
+    build: { context: ./enrollment-service }
+    container_name: skillprof-enrollment-service
+    ports: ["3008:3008"]
+    environment:
+      - PORT=3008
+      - DATABASE_URL=postgres://skilluser:skillpassword@enrollment-db:5432/enrollment_db
+    depends_on: [enrollment-db]
+    init: true
+    restart: always
+
+  payment-service:
+    build: { context: ./payment-service }
+    container_name: skillprof-payment-service
+    ports: ["3009:3009"]
+    environment:
+      - PORT=3009
+      - DATABASE_URL=postgres://skilluser:skillpassword@common-db:5432/payment_db
+    depends_on: [common-db]
+    init: true
+    restart: always
+
+  verification-service:
+    build: { context: ./verification-service }
+    container_name: skillprof-verification-service
+    ports: ["3010:3010"]
+    environment:
+      - PORT=3010
+      - DATABASE_URL=postgres://skilluser:skillpassword@common-db:5432/verification_db
+    depends_on: [common-db]
+    init: true
+    restart: always
+
+  blog-service:
+    build: { context: ./blog-service }
+    container_name: skillprof-blog-service
+    ports: ["3011:3011"]
+    environment:
+      - PORT=3011
+      - DATABASE_URL=postgres://skilluser:skillpassword@common-db:5432/blog_db
+    depends_on: [common-db]
+    init: true
+    restart: always
+
+  stat-service:
+    build: { context: ./stat-service }
+    container_name: skillprof-stat-service
+    ports: ["3012:3012"]
+    environment:
+      - PORT=3012
+      - DATABASE_URL=postgres://skilluser:skillpassword@common-db:5432/stat_db
+    depends_on: [common-db]
+    init: true
+    restart: always
+
+  level-service:
+    build: { context: ./level-service }
+    container_name: skillprof-level-service
+    ports: ["3017:3017"]
+    environment:
+      - PORT=3017
+      - DATABASE_URL=postgres://skilluser:skillpassword@level-db:5432/level_db
+    depends_on: [level-db]
+    init: true
+    restart: always
 
 volumes:
-  postgres_data:
+  auth_db_data:
+  user_db_data:
+  course_db_data:
+  enrollment_db_data:
+  level_db_data:
+  common_db_data:

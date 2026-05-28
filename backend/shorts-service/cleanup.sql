@@ -1,0 +1,1 @@
+DELETE FROM shorts WHERE "videoUrl" LIKE '%17770174%';

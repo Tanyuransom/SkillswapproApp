@@ -27,50 +27,11 @@ class _InboxScreenState extends State<InboxScreen> {
     if (myId == null) return;
 
     try {
-      final messages = await ApiService.getMessages(myId);
+      final conversations = await ApiService.getConversations(myId);
       
-      // Group by partnerId
-      final Map<String, List<dynamic>> grouped = {};
-      for (var msg in messages) {
-        final partnerId = msg['senderId'] == myId ? msg['receiverId'] : msg['senderId'];
-        grouped.putIfAbsent(partnerId, () => []).add(msg);
-      }
-
-      // Fetch partner names and avatars
-      final partnerIds = grouped.keys.toList();
-      Map<String, String> nameMap = {};
-      Map<String, String?> avatarMap = {};
-      
-      if (partnerIds.isNotEmpty) {
-        final users = await ApiService.getUsersBatch(partnerIds);
-        nameMap = {for (var u in users) u['id']: u['fullName']};
-        avatarMap = {for (var u in users) u['id']: u['avatarUrl']};
-      }
-
-      // Create display list
-      final List<Map<String, dynamic>> convs = [];
-      for (var partnerId in grouped.keys) {
-        // Sort individual messages by time to get the latest
-        final convMessages = grouped[partnerId]!;
-        convMessages.sort((a, b) => DateTime.parse(b['createdAt']).compareTo(DateTime.parse(a['createdAt'])));
-        
-        final latest = convMessages.first;
-        convs.add({
-          'partnerId': partnerId,
-          'partnerName': nameMap[partnerId] ?? 'User',
-          'partnerAvatar': avatarMap[partnerId],
-          'lastMessage': latest['content'],
-          'time': latest['createdAt'],
-          'isUnread': latest['receiverId'] == myId && !latest['isRead'],
-        });
-      }
-
-      // Sort conversations by latest message time
-      convs.sort((a, b) => DateTime.parse(b['time']).compareTo(DateTime.parse(a['time'])));
-
       if (mounted) {
         setState(() {
-          _conversations = convs;
+          _conversations = List<Map<String, dynamic>>.from(conversations);
           _isLoading = false;
         });
       }
@@ -107,9 +68,25 @@ class _InboxScreenState extends State<InboxScreen> {
                             ? Text(conv['partnerName'][0].toUpperCase(), style: const TextStyle(color: AppTheme.primaryPurple))
                             : null,
                       ),
-                      title: Text(conv['partnerName'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(conv['lastMessage'], maxLines: 1, overflow: TextOverflow.ellipsis),
-                      trailing: Text(_formatTime(conv['time']), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      title: Text(conv['partnerName'] ?? 'User', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(conv['latestMessage'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(_formatTime(conv['time']), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          if (conv['unreadCount'] > 0)
+                            Container(
+                              margin: const EdgeInsets.only(top: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(color: AppTheme.primaryPurple, borderRadius: BorderRadius.circular(10)),
+                              child: Text(
+                                conv['unreadCount'].toString(),
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                        ],
+                      ),
                       onTap: () async {
                          await Navigator.push(
                           context,

@@ -2,26 +2,28 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/user_role.dart';
+import '../services/session_service.dart';
 
 class ApiService {
-  // Use host IP for physical device connection over Wi-Fi
-  static const String hostIp = '192.168.1.154'; 
-  static const String authBaseUrl = 'http://$hostIp:3001/api';
-  static const String courseBaseUrl = 'http://$hostIp:3002/api';
+  // --- CENTRAL GATEWAY CONFIGURATION ---
+  static const String hostIp = '10.16.43.132'; 
+  static const String baseUrl = 'http://$hostIp:3000/api';
   static const Duration timeoutDuration = Duration(seconds: 15);
   
-  // Real Image Upload Method
+  // --- MEDIA UPLOADS (Now routed through specific services via Gateway) ---
+  
   static Future<String> uploadAvatar(String filePath) async {
     try {
-      var request = http.MultipartRequest('POST', Uri.parse('$authBaseUrl/auth/avatar'));
+      // Routed to User Service via Gateway
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/users/avatar'));
       request.files.add(await http.MultipartFile.fromPath('avatar', filePath));
       
       var response = await request.send().timeout(timeoutDuration);
       if (response.statusCode == 200) {
         var responseData = await response.stream.bytesToString();
         var json = jsonDecode(responseData);
-        // Important: Return the full URL for network display
-        return 'http://$hostIp:3001${json['url']}';
+        // Important: Return relative URL to be handled by UrlHelper.fixIp
+        return json['url']; 
       }
       throw Exception('Upload failed');
     } catch (e) {
@@ -29,24 +31,8 @@ class ApiService {
     }
   }
 
-  // Real Video Upload Method
-  static Future<String> uploadVideo(String filePath) async {
-    try {
-      var request = http.MultipartRequest('POST', Uri.parse('$courseBaseUrl/shorts/upload'));
-      request.files.add(await http.MultipartFile.fromPath('video', filePath));
-      
-      var response = await request.send().timeout(const Duration(seconds: 60)); // Long timeout for video
-      if (response.statusCode == 200) {
-        var responseData = await response.stream.bytesToString();
-        var json = jsonDecode(responseData);
-        // Important: Return the full URL for the frontend to play
-        return 'http://$hostIp:3002${json['url']}';
-      }
-      throw Exception('Video upload failed');
-    } catch (e) {
-      throw Exception('Video Upload Error: ${e.toString()}');
-    }
-  }
+
+  // --- AUTHENTICATION (Identity Service) ---
 
   static Future<Map<String, dynamic>> register({
     required String fullName,
@@ -57,7 +43,7 @@ class ApiService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$authBaseUrl/auth/register'),
+        Uri.parse('$baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'fullName': fullName,
@@ -79,43 +65,13 @@ class ApiService {
     }
   }
 
-  // Course & Category Methods
-  static Future<List<dynamic>> getCategories() async {
-    try {
-      final response = await http.get(Uri.parse('$courseBaseUrl/categories'))
-          .timeout(timeoutDuration);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  static Future<Map<String, dynamic>> createCategory(String name) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$courseBaseUrl/categories'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'name': name}),
-      ).timeout(timeoutDuration);
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      throw Exception('Failed to create category');
-    } catch (e) {
-      throw Exception('Connection Error: ${e.toString()}');
-    }
-  }
-
   static Future<Map<String, dynamic>> login({
     required String email,
     required String password,
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$authBaseUrl/auth/login'),
+        Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -139,14 +95,17 @@ class ApiService {
     String? role,
   }) async {
     try {
+      print("Sending Google Login to: $baseUrl/auth/google-login");
       final response = await http.post(
-        Uri.parse('$authBaseUrl/auth/google-login'),
+        Uri.parse('$baseUrl/auth/google-login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'idToken': idToken,
           'role': role,
         }),
       ).timeout(timeoutDuration);
+
+      print("Google Login Response: ${response.statusCode} - ${response.body}");
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -155,30 +114,16 @@ class ApiService {
         throw Exception(error);
       }
     } catch (e) {
+      print("Google Login API Error: $e");
       throw Exception('Google Auth Error: ${e.toString()}');
     }
   }
 
-  // Course Service Methods
-  static Future<List<dynamic>> getCourses({String? categoryId, String? query}) async {
-    try {
-      String url = '$courseBaseUrl/courses?';
-      if (categoryId != null) url += 'categoryId=$categoryId&';
-      if (query != null) url += 'query=${Uri.encodeComponent(query)}&';
-      
-      final response = await http.get(Uri.parse(url)).timeout(timeoutDuration);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      return [];
-    } catch (e) {
-      throw Exception('Course Error: ${e.toString()}');
-    }
-  }
+  // --- USER PROFILES (User Service) ---
 
   static Future<Map<String, dynamic>> getUser(String id) async {
     try {
-      final response = await http.get(Uri.parse('$authBaseUrl/auth/$id')).timeout(timeoutDuration);
+      final response = await http.get(Uri.parse('$baseUrl/users/$id')).timeout(timeoutDuration);
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       }
@@ -188,209 +133,24 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> enrollCourse({required String courseId, required String studentId}) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$courseBaseUrl/courses/enroll'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'courseId': courseId,
-          'studentId': studentId,
-        }),
-      ).timeout(timeoutDuration);
-
-      if (response.statusCode == 201) {
-        return jsonDecode(response.body);
-      } else {
-        final error = jsonDecode(response.body)['error'] ?? 'Enrollment failed';
-        throw Exception(error);
-      }
-    } catch (e) {
-      throw Exception('Enrollment Error: ${e.toString()}');
-    }
-  }
-
-  static Future<Map<String, dynamic>> createCourse({
-    required String title,
-    required String description,
-    required double price,
-    required String instructorId,
-    String? imageUrl,
-    String? categoryId,
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$courseBaseUrl/courses'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'title': title,
-          'description': description,
-          'price': price,
-          'instructorId': instructorId,
-          'imageUrl': imageUrl,
-          'categoryId': categoryId,
-        }),
-      ).timeout(timeoutDuration);
-
-      if (response.statusCode == 201) {
-        return jsonDecode(response.body);
-      } else {
-        throw Exception('Failed to create course');
-      }
-    } catch (e) {
-      throw Exception('Creation Error: ${e.toString()}');
-    }
-  }
-
-  static Future<List<dynamic>> getEnrolledStudents(String tutorId) async {
-    try {
-      final response = await http.get(Uri.parse('$courseBaseUrl/courses/tutor/$tutorId/students'))
-          .timeout(timeoutDuration);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  static Future<Map<String, dynamic>> getAdminStats() async {
-    try {
-      final response = await http.get(Uri.parse('$courseBaseUrl/courses/stats'))
-          .timeout(timeoutDuration);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      throw Exception('Failed to fetch admin stats');
-    } catch (e) {
-      throw Exception('Stats Error: ${e.toString()}');
-    }
-  }
-
-  static Future<Map<String, dynamic>> getTutorStats(String tutorId) async {
-    try {
-      final response = await http.get(Uri.parse('$courseBaseUrl/courses/stats?tutorId=$tutorId'))
-          .timeout(timeoutDuration);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      throw Exception('Failed to fetch stats');
-    } catch (e) {
-      throw Exception('Stats Error: ${e.toString()}');
-    }
-  }
-
-  // Forgot Password Methods
-  static Future<void> forgotPassword(String email) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$authBaseUrl/auth/forgot-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email}),
-      ).timeout(timeoutDuration);
-
-      if (response.statusCode != 200) {
-        throw Exception(jsonDecode(response.body)['error'] ?? 'Request failed');
-      }
-    } catch (e) {
-      throw Exception('Forgot Password Error: ${e.toString()}');
-    }
-  }
-
-  static Future<void> resetPassword(String email, String newPassword) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$authBaseUrl/auth/reset-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'newPassword': newPassword,
-        }),
-      ).timeout(timeoutDuration);
-
-      if (response.statusCode != 200) {
-        throw Exception(jsonDecode(response.body)['error'] ?? 'Reset failed');
-      }
-    } catch (e) {
-      throw Exception('Reset Password Error: ${e.toString()}');
-    }
-  }
-
-  // New Batch & Shorts Methods
-  static Future<List<dynamic>> getUsersBatch(List<String> ids) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$authBaseUrl/auth/batch'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'ids': ids}),
-      ).timeout(timeoutDuration);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  static Future<List<dynamic>> getShorts() async {
-    try {
-      final response = await http.get(Uri.parse('$courseBaseUrl/shorts'))
-          .timeout(timeoutDuration);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  static Future<Map<String, dynamic>> createShort({
-    required String tutorId,
-    required String tutorName,
-    required String courseName,
-    required String description,
-    required String videoUrl,
-    String? tutorAvatarUrl,
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$courseBaseUrl/shorts'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'tutorId': tutorId,
-          'tutorName': tutorName,
-          'courseName': courseName,
-          'description': description,
-          'videoUrl': videoUrl,
-          'tutorAvatarUrl': tutorAvatarUrl,
-        }),
-      ).timeout(timeoutDuration);
-      if (response.statusCode == 201) {
-        return jsonDecode(response.body);
-      }
-      throw Exception('Failed to upload short');
-    } catch (e) {
-       throw Exception('Short Upload Error: ${e.toString()}');
-    }
-  }
+  static Future<Map<String, dynamic>> getUserById(String id) => getUser(id);
 
   static Future<Map<String, dynamic>> updateUser({
     required String id,
     required String fullName,
     String? specialization,
     String? avatarUrl,
+    String? role,
   }) async {
     try {
       final response = await http.put(
-        Uri.parse('$authBaseUrl/auth/$id'),
+        Uri.parse('$baseUrl/users/$id'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'fullName': fullName,
           'specialization': specialization,
           'avatarUrl': avatarUrl,
+          'role': role,
         }),
       ).timeout(timeoutDuration);
 
@@ -405,89 +165,645 @@ class ApiService {
     }
   }
 
-  static Future<List<dynamic>> getTutorCourses(String tutorId) async {
+  static Future<List<dynamic>> getUsersBatch(List<String> ids) async {
     try {
-      final response = await http.get(Uri.parse('$courseBaseUrl/courses/tutor/$tutorId/courses'))
-          .timeout(timeoutDuration);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/batch'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'ids': ids}),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) { return []; }
+  }
+
+  static Future<List<dynamic>> getUsers() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users'),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) { return []; }
+  }
+
+  static Future<void> deleteUser(String id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/users/$id'),
+      ).timeout(timeoutDuration);
+      if (response.statusCode != 200) {
+        throw Exception('Failed to delete user');
       }
-      return [];
     } catch (e) {
-      return [];
+      throw Exception('Delete User Error: ${e.toString()}');
     }
   }
 
-  static Future<List<dynamic>> getNotifications(String userId) async {
-    try {
-      final response = await http.get(Uri.parse('$courseBaseUrl/courses/notifications/$userId'))
-          .timeout(timeoutDuration);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  static Future<void> markNotificationAsRead(String id) async {
-    try {
-      await http.put(Uri.parse('$courseBaseUrl/courses/notifications/$id/read'))
-          .timeout(timeoutDuration);
-    } catch (e) { /* silent */ }
-  }
-
-  static Future<void> markAllNotificationsAsRead(String userId) async {
-    try {
-      await http.put(Uri.parse('$courseBaseUrl/courses/notifications/user/$userId/read-all'))
-          .timeout(timeoutDuration);
-    } catch (e) { /* silent */ }
-  }
-
-  static Future<Map<String, dynamic>> sendMessage({
-    required String senderId,
-    required String receiverId,
-    required String content,
-    String? senderName,
+  static Future<Map<String, dynamic>> createUser({
+    required String email,
+    required String fullName,
+    required String role,
+    String? specialization,
+    String? avatarUrl,
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$courseBaseUrl/courses/messages'),
+        Uri.parse('$baseUrl/users'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'senderId': senderId,
-          'receiverId': receiverId,
-          'content': content,
-          'senderName': senderName,
+          'email': email,
+          'fullName': fullName,
+          'role': role,
+          'specialization': specialization,
+          'avatarUrl': avatarUrl ?? 'https://i.pravatar.cc/150?img=${email.length % 70}',
         }),
       ).timeout(timeoutDuration);
-      if (response.statusCode == 201) {
-        return jsonDecode(response.body);
-      }
-      throw Exception('Failed to send message');
+      if (response.statusCode == 201) return jsonDecode(response.body);
+      throw Exception('Failed to create user');
     } catch (e) {
-      throw Exception('Message Error: ${e.toString()}');
+      throw Exception('Create User Error: ${e.toString()}');
     }
+  }
+
+  // --- COURSES (Course Service) ---
+
+  static Future<List<dynamic>> getCourses({String? categoryId, String? query, int? level, String? specialty}) async {
+    try {
+      String url = '$baseUrl/courses?';
+      if (categoryId != null) url += 'categoryId=$categoryId&';
+      if (query != null) url += 'query=${Uri.encodeComponent(query)}&';
+      if (level != null) url += 'level=$level&';
+      if (specialty != null) url += 'specialty=$specialty&';
+      
+      final response = await http.get(Uri.parse(url)).timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) {
+      throw Exception('Course Error: ${e.toString()}');
+    }
+  }
+
+  static Future<List<dynamic>> getTrendingCourses({int? level, String? specialty}) async {
+    try {
+      String url = '$baseUrl/courses/trending?';
+      if (level != null) url += 'level=$level&';
+      if (specialty != null) url += 'specialty=$specialty&';
+      
+      final response = await http.get(Uri.parse(url)).timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<void> recordCourseView(String courseId) async {
+    try {
+      await http.patch(Uri.parse('$baseUrl/courses/$courseId/view')).timeout(timeoutDuration);
+    } catch (e) { /* silent */ }
+  }
+
+  static Future<Map<String, dynamic>> createCourse({
+    required String title,
+    required String description,
+    required double price,
+    required String instructorId,
+    String? imageUrl,
+    String? categoryId,
+    String? instructorName,
+    String? instructorAvatarUrl,
+    int? level,
+    String? specialty,
+    String? semester,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/courses'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': title, 'description': description, 'price': price,
+          'instructorId': instructorId, 'imageUrl': imageUrl, 'categoryId': categoryId,
+          'instructorName': instructorName, 'instructorAvatarUrl': instructorAvatarUrl,
+          'level': level ?? 1,
+          'specialty': specialty,
+          'semester': semester,
+        }),
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 201) return jsonDecode(response.body);
+      throw Exception('Failed to create course');
+    } catch (e) { throw Exception('Creation Error: ${e.toString()}'); }
+  }
+
+  static Future<Map<String, dynamic>> updateCourse({
+    required String courseId,
+    int? level,
+    String? specialty,
+    String? semester,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/courses/$courseId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'level': level,
+          'specialty': specialty,
+          'semester': semester,
+        }),
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      throw Exception('Failed to update course');
+    } catch (e) { throw Exception('Update Error: ${e.toString()}'); }
+  }
+
+  static Future<void> deleteCourse(String courseId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/courses/$courseId'),
+      ).timeout(timeoutDuration);
+      if (response.statusCode != 200) {
+        throw Exception('Failed to delete course');
+      }
+    } catch (e) {
+      throw Exception('Delete Error: ${e.toString()}');
+    }
+  }
+
+  static Future<Map<String, dynamic>> addCourseMaterial({
+    required String courseId,
+    required String title,
+    required String url,
+    required String type,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/courses/$courseId/materials'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': title, 'url': url, 'type': type
+        }),
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      throw Exception('Failed to add course material');
+    } catch (e) { throw Exception('Material Error: ${e.toString()}'); }
+  }
+
+  static Future<List<dynamic>> getTutorCourses(String tutorId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/courses/tutor/$tutorId/courses'))
+          .timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) { return []; }
+  }
+
+  static Future<Map<String, dynamic>> addCourseReview({
+    required String courseId,
+    required String userId,
+    required String userName,
+    required int rating,
+    required String comment,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/courses/$courseId/reviews'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'userName': userName,
+          'rating': rating,
+          'comment': comment,
+        }),
+      ).timeout(timeoutDuration);
+      
+      if (response.statusCode == 201) return jsonDecode(response.body);
+      throw Exception('Failed to add review');
+    } catch (e) {
+      throw Exception('Review Error: ${e.toString()}');
+    }
+  }
+
+  static Future<List<dynamic>> getCourseReviews(String courseId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/courses/$courseId/reviews'))
+          .timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) { return []; }
+  }
+
+  // --- CATEGORIES (Category Service) ---
+
+  static Future<List<dynamic>> getCategories() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/categories'))
+          .timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) { return []; }
+  }
+
+  // --- ENROLLMENTS (Enrollment Service) ---
+
+  static Future<Map<String, dynamic>> enrollCourse({required String courseId, required String studentId}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/enrollments'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({ 'courseId': courseId, 'studentId': studentId }),
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 201) return jsonDecode(response.body);
+      final error = jsonDecode(response.body)['error'] ?? 'Enrollment failed';
+      throw Exception(error);
+    } catch (e) { throw Exception('Enrollment Error: ${e.toString()}'); }
+  }
+
+  static Future<List<dynamic>> getEnrolledStudents(String tutorId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/enrollments/tutor/$tutorId/students'))
+          .timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) { return []; }
+  }
+
+  static Future<List<dynamic>> getStudentEnrollments(String studentId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/enrollments/student/$studentId'))
+          .timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) { return []; }
+  }
+
+  // --- SHORTS (Shorts Service) ---
+
+  static Future<List<dynamic>> getShorts({int? level, String? specialty}) async {
+    try {
+      final session = SessionService();
+      String url = '$baseUrl/shorts?';
+      if (session.userId != null) {
+        url += 'userId=${session.userId}&';
+      }
+      if (level != null) {
+        url += 'level=$level&';
+      }
+      if (specialty != null) {
+        url += 'specialty=$specialty&';
+      }
+      final response = await http.get(Uri.parse(url))
+          .timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) { return []; }
+  }
+
+  static Future<Map<String, dynamic>> createShort({
+    required String tutorId, 
+    required String videoUrl, 
+    String? tutorName, 
+    String? courseName,
+    String? description,
+    String? tutorAvatarUrl,
+    int? level,
+    String? specialty,
+    String? categoryId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/shorts'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({ 
+          'tutorId': tutorId, 
+          'title': description ?? 'New Tip', 
+          'description': description ?? 'New Tip',
+          'videoUrl': videoUrl, 
+          'tutorName': tutorName ?? 'SkillProf Tutor', 
+          'courseName': courseName ?? 'SkillProf Tips',
+          'tutorAvatarUrl': tutorAvatarUrl ?? '',
+          'level': level ?? 1,
+          'specialty': specialty,
+          'categoryId': categoryId,
+        }),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 201) return jsonDecode(response.body);
+      throw Exception('Failed to create short');
+    } catch (e) { throw Exception('Shorts Error: ${e.toString()}'); }
+  }
+
+  static Future<void> deleteShort(String id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/shorts/$id'),
+      ).timeout(timeoutDuration);
+      if (response.statusCode != 200) {
+        throw Exception('Failed to delete short');
+      }
+    } catch (e) {
+      throw Exception('Delete Short Error: ${e.toString()}');
+    }
+  }
+
+
+
+  static Future<Map<String, dynamic>> toggleLike({
+    required String userId,
+    required String targetId,
+    required String targetType,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/likes/toggle'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'targetId': targetId,
+          'targetType': targetType,
+        }),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      throw Exception('Failed to toggle like');
+    } catch (e) {
+      throw Exception('Like Error: ${e.toString()}');
+    }
+  }
+
+  static Future<Map<String, dynamic>> addComment({
+    required String userId,
+    required String userName,
+    required String targetId,
+    required String targetType,
+    required String text,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/comments'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'userName': userName,
+          'targetId': targetId,
+          'targetType': targetType,
+          'text': text,
+        }),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 201) return jsonDecode(response.body);
+      throw Exception('Failed to add comment');
+    } catch (e) {
+      throw Exception('Comment Error: ${e.toString()}');
+    }
+  }
+
+  static Future<List<dynamic>> getComments({
+    required String targetId,
+    required String targetType,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/comments?targetId=$targetId&targetType=$targetType'),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) { return []; }
+  }
+
+  static Future<Map<String, dynamic>> recordShare({
+    required String userId,
+    required String targetId,
+    required String targetType,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/shares'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'targetId': targetId,
+          'targetType': targetType,
+        }),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 201) return jsonDecode(response.body);
+      throw Exception('Failed to record share');
+    } catch (e) {
+      throw Exception('Share Error: ${e.toString()}');
+    }
+  }
+
+  static Future<Map<String, dynamic>> sendMessage({
+    required String senderId, required String receiverId,
+    required String content, 
+    String? senderName,
+    String? senderAvatarUrl,
+    String? senderRole,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/messaging'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'senderId': senderId, 
+          'receiverId': receiverId,
+          'content': content, 
+          'senderName': senderName,
+          'senderAvatarUrl': senderAvatarUrl,
+          'senderRole': senderRole,
+        }),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 201) return jsonDecode(response.body);
+      throw Exception('Failed to send message');
+    } catch (e) { throw Exception('Message Error: ${e.toString()}'); }
   }
 
   static Future<List<dynamic>> getMessages(String userId) async {
     try {
-      final response = await http.get(Uri.parse('$courseBaseUrl/courses/messages/$userId'))
+      final response = await http.get(Uri.parse('$baseUrl/messaging/$userId'))
           .timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) { return []; }
+  }
+
+  static Future<List<dynamic>> getConversations(String userId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/messaging/conversations/$userId'))
+          .timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) { return []; }
+  }
+
+  static Future<Map<String, dynamic>> getChatHistory(String userId, String partnerId, {int limit = 50, int offset = 0}) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/messaging/history/$userId/$partnerId?limit=$limit&offset=$offset'))
+          .timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return {'messages': [], 'total': 0};
+    } catch (e) { return {'messages': [], 'total': 0}; }
+  }
+
+  static Future<void> markChatAsRead(String userId, String partnerId) async {
+    try {
+      await http.patch(Uri.parse('$baseUrl/messaging/read/$userId/$partnerId')).timeout(timeoutDuration);
+    } catch (e) { /* silent */ }
+  }
+
+  // --- NOTIFICATIONS (Notification Service) ---
+
+  static Future<List<dynamic>> getNotifications(String userId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/notifications/$userId'))
+          .timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) { return []; }
+  }
+
+  static Future<void> markNotificationAsRead(String id) async {
+    try {
+      await http.put(Uri.parse('$baseUrl/notifications/$id/read')).timeout(timeoutDuration);
+    } catch (e) { /* silent */ }
+  }
+
+  // --- STATS & ADMIN (Placeholder Services) ---
+
+  static Future<Map<String, dynamic>> getAdminStats() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/stats/admin')).timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return {'activeStudents': 0};
+    } catch (e) { return {'activeStudents': 0}; }
+  }
+
+  static Future<Map<String, dynamic>> getTutorStats(String tutorId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/stats/tutor/$tutorId')).timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return {'totalEarnings': 0, 'activeStudents': 0, 'newEnrollments': 0};
+    } catch (e) { return {'totalEarnings': 0, 'activeStudents': 0, 'newEnrollments': 0}; }
+  }
+
+  // --- UPLOADS (Multipart) ---
+
+  static Future<String> uploadCourseImage(String filePath) async {
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/courses/upload'));
+      request.files.add(await http.MultipartFile.fromPath('file', filePath));
+      
+      final response = await request.send().timeout(const Duration(minutes: 2));
+      final respStr = await response.stream.bytesToString();
+      
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        return jsonDecode(respStr)['url'];
       }
-      return [];
-    } catch (e) {
-      return [];
+      throw Exception('Upload failed: $respStr');
+    } catch (e) { throw Exception('Image Upload Error: ${e.toString()}'); }
+  }
+
+  static Future<String> uploadCourseFile(String filePath) async {
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/courses/upload'));
+      request.files.add(await http.MultipartFile.fromPath('file', filePath));
+      
+      final response = await request.send().timeout(const Duration(minutes: 10)); // Longer for materials
+      final respStr = await response.stream.bytesToString();
+      
+      if (response.statusCode == 200) {
+        return jsonDecode(respStr)['url'];
+      }
+      throw Exception('Upload failed: $respStr');
+    } catch (e) { throw Exception('File Upload Error: ${e.toString()}'); }
+  }
+
+  static Future<String> uploadVideo(String filePath) async {
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/shorts/upload'));
+      request.files.add(await http.MultipartFile.fromPath('video', filePath));
+      
+      // Large files need longer timeout
+      final response = await request.send().timeout(const Duration(minutes: 5));
+      final respStr = await response.stream.bytesToString();
+      
+      if (response.statusCode == 200) {
+        return jsonDecode(respStr)['url'];
+      }
+      throw Exception('Upload failed: $respStr');
+    } catch (e) { throw Exception('Video Upload Error: ${e.toString()}'); }
+  }
+
+  // --- CATEGORY ---
+  static Future<Map<String, dynamic>> createCategory(String name) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/categories'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'name': name, 'description': ''}),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 201) return jsonDecode(response.body);
+      throw Exception('Failed to create category');
+    } catch (e) { 
+      throw Exception('Category Error: ${e.toString()}');
     }
   }
 
-  static Future<void> markMessageAsRead(String id) async {
+  // --- PASSWORD RESET ---
+  static Future<void> forgotPassword(String email) async {
     try {
-      await http.put(Uri.parse('$courseBaseUrl/courses/messages/$id/read'))
-          .timeout(timeoutDuration);
+      await http.post(
+        Uri.parse('$baseUrl/auth/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      ).timeout(timeoutDuration);
+    } catch (e) { throw Exception('Failed to send reset email'); }
+  }
+
+  static Future<void> resetPassword(String email, String password) async {
+    try {
+      await http.post(
+        Uri.parse('$baseUrl/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      ).timeout(timeoutDuration);
+    } catch (e) { throw Exception('Failed to reset password'); }
+  }
+
+  // --- NOTIFICATIONS ---
+  static Future<void> markAllNotificationsAsRead(String userId) async {
+    try {
+      await http.put(
+        Uri.parse('$baseUrl/notifications/read-all/$userId'),
+      ).timeout(timeoutDuration);
+    } catch (e) { /* silent */ }
+  }
+
+  // --- LEVELS (Level Service) ---
+  static Future<List<dynamic>> getLevels() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/levels')).timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return [];
+    } catch (e) { return []; }
+  }
+
+  static Future<Map<String, dynamic>> getUserLevel(String userId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/levels/user/$userId')).timeout(timeoutDuration);
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      return {'levelId': 1};
+    } catch (e) { return {'levelId': 1}; }
+  }
+
+  static Future<void> moveUserLevel(String userId, int levelId) async {
+    try {
+      await http.post(
+        Uri.parse('$baseUrl/levels/move'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'userId': userId, 'levelId': levelId}),
+      ).timeout(timeoutDuration);
     } catch (e) { /* silent */ }
   }
 }
+

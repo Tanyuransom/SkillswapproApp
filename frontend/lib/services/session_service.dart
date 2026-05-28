@@ -12,12 +12,19 @@ class SessionService {
   String? _fullName;
   String? _token;
   String? _avatarUrl;
+  String? _specialization;
+  String? _academicSpecialty;
+  int _academicLevel = 1;
 
   UserRole get currentRole => _currentRole;
   String? get userId => _userId;
   String? get fullName => _fullName;
   String? get token => _token;
   String? get avatarUrl => _avatarUrl;
+  String? get specialization => _specialization;
+  String? get academicSpecialty => _academicSpecialty;
+  int get academicLevel => _academicLevel;
+  String get role => _currentRole.toString().split('.').last;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -25,6 +32,9 @@ class SessionService {
     _fullName = prefs.getString('fullName');
     _token = prefs.getString('token');
     _avatarUrl = prefs.getString('avatarUrl');
+    _specialization = prefs.getString('specialization');
+    _academicSpecialty = prefs.getString('academicSpecialty');
+    _academicLevel = prefs.getInt('academicLevel') ?? 1;
     final roleStr = prefs.getString('role');
     if (roleStr != null) {
       _currentRole = UserRole.values.firstWhere(
@@ -40,22 +50,35 @@ class SessionService {
     required String token,
     required UserRole role,
     String? avatarUrl,
+    String? specialization,
   }) async {
     _userId = userId;
     _fullName = fullName;
     _token = token;
     _currentRole = role;
     _avatarUrl = avatarUrl;
+    _specialization = specialization;
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('userId', userId);
     await prefs.setString('fullName', fullName);
     await prefs.setString('token', token);
     await prefs.setString('role', role.toString());
-    if (avatarUrl != null) {
-      await prefs.setString('avatarUrl', avatarUrl);
+    if (avatarUrl != null) await prefs.setString('avatarUrl', avatarUrl);
+    if (specialization != null) await prefs.setString('specialization', specialization);
+    if (_academicSpecialty != null) await prefs.setString('academicSpecialty', _academicSpecialty!);
+    await prefs.setInt('academicLevel', _academicLevel);
+  }
+
+  Future<void> updateAcademicPreferences(int level, String? specialty) async {
+    _academicLevel = level;
+    _academicSpecialty = specialty;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('academicLevel', level);
+    if (specialty != null) {
+      await prefs.setString('academicSpecialty', specialty);
     } else {
-      await prefs.remove('avatarUrl');
+      await prefs.remove('academicSpecialty');
     }
   }
 

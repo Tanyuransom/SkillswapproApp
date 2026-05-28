@@ -34,16 +34,15 @@ mixin GoogleSignInMixin<T extends StatefulWidget> on State<T> {
       final result = await ApiService.googleLogin(idToken: idToken, role: initialRole);
 
       if (result['requireRole'] == true) {
+        // All users on SkillSwap are tutors — no need for role selection modal
         if (!mounted) return;
-        final selectedRole = await showRoleSelectionModal(context);
-        if (selectedRole != null) {
-          final finalResult = await ApiService.googleLogin(idToken: idToken, role: selectedRole);
-          await handleAuthSuccess(finalResult);
-        }
+        final finalResult = await ApiService.googleLogin(idToken: idToken, role: 'tutor');
+        await handleAuthSuccess(finalResult);
       } else {
         await handleAuthSuccess(result);
       }
     } catch (e) {
+      print("GOOGLE SIGN-IN EXCEPTION: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Google Sign-In Error: $e"), backgroundColor: AppTheme.errorRed),
@@ -58,20 +57,35 @@ mixin GoogleSignInMixin<T extends StatefulWidget> on State<T> {
     final session = SessionService();
     final userData = result['user'];
     
+    final userRole = UserRole.values.firstWhere(
+      (e) => e.toString().contains(userData['role'] ?? 'student'),
+      orElse: () => UserRole.student,
+    );
+
     await session.saveSession(
       token: result['token'],
       userId: userData['id'],
       fullName: userData['fullName'],
       avatarUrl: userData['avatarUrl'],
-      role: UserRole.values.firstWhere(
-        (e) => e.toString().contains(userData['role'] ?? 'student'),
-        orElse: () => UserRole.student,
-      ),
+      role: userRole,
+      specialization: userData['specialization'],
     );
+
+    // Fetch full profile from user-service to get academicLevel & academicSpecialty
+    try {
+      final profile = await ApiService.getUser(userData['id']);
+      final int level = (profile['academicLevel'] as int?) ?? 1;
+      final String? specialty = profile['academicSpecialty'] as String?;
+      await session.updateAcademicPreferences(level, specialty);
+    } catch (_) {
+      // Non-fatal: use defaults (level 1, no specialty)
+    }
+
     if (mounted) {
       Navigator.pushReplacementNamed(context, '/home');
     }
   }
+
 
   Future<String?> showRoleSelectionModal(BuildContext context) async {
     return showModalBottomSheet<String>(

@@ -1,11 +1,9 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
 import { Course } from "./entities/Course";
-import { Category } from "./entities/Category";
-import { Enrollment } from "./entities/Enrollment";
-import { Short } from "./entities/Short";
-import { Notification } from "./entities/Notification";
-import { Message } from "./entities/Message";
+import { CourseReview } from "./entities/CourseReview";
+
+
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -15,7 +13,8 @@ export const AppDataSource = new DataSource({
   url: process.env.DATABASE_URL,
   synchronize: true, // Only for development!
   logging: false,
-  entities: [Course, Category, Enrollment, Short, Notification, Message],
+  entities: [Course, CourseReview],
+
   migrations: [],
   subscribers: [],
 });

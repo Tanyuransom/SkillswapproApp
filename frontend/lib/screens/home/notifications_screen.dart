@@ -73,6 +73,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   itemBuilder: (context, index) {
                     final note = _notifications[index];
                     final isEnrolled = note['type'] == 'enrollment';
+                    final isMessage = note['type'] == 'MESSAGE';
                     
                     return InkWell(
                       onTap: () async {
@@ -101,12 +102,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: (isEnrolled ? AppTheme.successGreen : AppTheme.primaryPurple).withValues(alpha: 0.1),
+                                color: (isEnrolled ? AppTheme.successGreen : (isMessage ? AppTheme.secondaryOrange : AppTheme.primaryPurple)).withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
-                                isEnrolled ? Icons.school_rounded : Icons.notifications_rounded,
-                                color: isEnrolled ? AppTheme.successGreen : AppTheme.primaryPurple,
+                                isEnrolled ? Icons.school_rounded : (isMessage ? Icons.chat_bubble_rounded : Icons.notifications_rounded),
+                                color: isEnrolled ? AppTheme.successGreen : (isMessage ? AppTheme.secondaryOrange : AppTheme.primaryPurple),
                                 size: 24,
                               ),
                             ),

@@ -82,9 +82,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final name = _userData?['fullName'] ?? "User";
+    final session = SessionService();
+    final name = _userData?['fullName'] ?? session.fullName ?? "User";
     final email = _userData?['email'] ?? "email@example.com";
-    final avatarUrl = _userData?['avatarUrl'];
+    final avatarUrl = _userData?['avatarUrl'] ?? session.avatarUrl;
 
     return Scaffold(
       appBar: AppBar(

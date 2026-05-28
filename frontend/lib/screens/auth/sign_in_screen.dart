@@ -61,6 +61,17 @@ class _SignInScreenState extends State<SignInScreen> with GoogleSignInMixin {
         avatarUrl: response['user']['avatarUrl'],
         role: role,
       );
+
+      // Automatic Sync to user-service
+      try {
+        await ApiService.updateUser(
+          id: response['user']['id'],
+          fullName: response['user']['fullName'] ?? 'User',
+          avatarUrl: response['user']['avatarUrl'],
+        );
+      } catch (e) {
+        // Silent sync failure
+      }
       
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/home');

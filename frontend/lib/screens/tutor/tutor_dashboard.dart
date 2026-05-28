@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../course/upload_course_screen.dart';
+import '../shorts/upload_short_screen.dart';
 import '../../services/api_service.dart';
 import '../../services/session_service.dart';
 import '../messaging/chat_screen.dart';
 import '../messaging/inbox_screen.dart';
 import '../../utils/url_helper.dart';
+import 'my_courses_screen.dart';
 
 class TutorDashboard extends StatefulWidget {
   const TutorDashboard({super.key});
@@ -22,6 +24,30 @@ class _TutorDashboardState extends State<TutorDashboard> {
   int _activeStudentCount = 0;
   int _courseCount = 0;
   int _earnings = 0;
+
+  double get _averageRating {
+    if (_courses.isEmpty) return 0.0;
+    double sum = 0.0;
+    int count = 0;
+    for (var c in _courses) {
+      final rawRating = c['averageRating'];
+      final rating = (rawRating is num ? rawRating.toDouble() : double.tryParse(rawRating?.toString() ?? '0') ?? 0.0);
+      if (rating > 0.0) {
+        sum += rating;
+        count++;
+      }
+    }
+    return count > 0 ? sum / count : 0.0;
+  }
+
+  int get _totalReviews {
+    int total = 0;
+    for (var c in _courses) {
+      final int reviews = c['reviewCount'] ?? 0;
+      total += reviews;
+    }
+    return total;
+  }
 
   @override
   void initState() {
@@ -93,9 +119,15 @@ class _TutorDashboardState extends State<TutorDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final session = SessionService();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: isDark ? AppTheme.backgroundDark : Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Tutor Command Center'),
+        title: const Text('Command Center'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
           Stack(
             children: [
@@ -116,7 +148,7 @@ class _TutorDashboardState extends State<TutorDashboard> {
             ],
           ),
           IconButton(
-            icon: const Icon(Icons.add_a_photo_rounded),
+            icon: const Icon(Icons.add_a_photo_rounded, color: AppTheme.primaryPurple),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UploadCourseScreen())).then((_) => _refreshAll()),
           ),
         ],
@@ -124,28 +156,115 @@ class _TutorDashboardState extends State<TutorDashboard> {
       body: RefreshIndicator(
         onRefresh: _refreshAll,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // --- NEW PROFILE HEADER ---
+              _buildProfileHeader(session),
+              const SizedBox(height: 24),
+              
+              // --- INTEGRATED STATS ---
               _buildStatBanner(),
               const SizedBox(height: 32),
+              
               _buildSectionTitle('Quick Actions'),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  _buildActionCard('New Lesson', Icons.video_call, AppTheme.primaryPurple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UploadCourseScreen())).then((_) => _refreshAll())),
-                  const SizedBox(width: 16),
-                  _buildActionCard('Messages', Icons.message_rounded, AppTheme.secondaryOrange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InboxScreen())).then((_) => _refreshAll())),
+                  _buildActionCard('My Courses', Icons.collections_bookmark_rounded, AppTheme.primaryPurple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyCoursesScreen())).then((_) => _refreshAll())),
+                  const SizedBox(width: 12),
+                  _buildActionCard('New Short', Icons.video_call, AppTheme.secondaryOrange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UploadShortScreen())).then((_) => _refreshAll())),
+                  const SizedBox(width: 12),
+                  _buildActionCard('Messages', Icons.message_rounded, AppTheme.accentYellow, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InboxScreen())).then((_) => _refreshAll())),
                 ],
               ),
               const SizedBox(height: 32),
               _buildSectionTitle('Active Students'),
               const SizedBox(height: 16),
               _buildStudentList(),
+              const SizedBox(height: 40),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader(SessionService session) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05), blurRadius: 15, offset: const Offset(0, 5))
+        ]
+      ),
+      child: Row(
+        children: [
+          Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(colors: [AppTheme.primaryPurple, AppTheme.secondaryOrange])
+                ),
+                child: CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.white,
+                  backgroundImage: (session.avatarUrl != null && session.avatarUrl!.isNotEmpty)
+                      ? NetworkImage(UrlHelper.fixIp(session.avatarUrl!)) as ImageProvider
+                      : const AssetImage('assets/images/tutor.png'),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(color: AppTheme.successGreen, shape: BoxShape.circle),
+                  child: const Icon(Icons.check, size: 12, color: Colors.white),
+                ),
+              )
+            ],
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  session.fullName ?? "Expert Tutor",
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  session.specialization ?? "Skill Instructor",
+                  style: TextStyle(color: AppTheme.primaryPurple, fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.star, color: AppTheme.accentYellow, size: 16),
+                    Text(" ${_averageRating.toStringAsFixed(1)} ", style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text("($_totalReviews reviews)", style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                  ],
+                )
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit_note_rounded, color: AppTheme.primaryPurple),
+            onPressed: () => Navigator.pushNamed(context, '/profile'),
+          )
+        ],
       ),
     );
   }
@@ -273,38 +392,6 @@ class _TutorDashboardState extends State<TutorDashboard> {
     );
   }
 
-  void _showMyCourses() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Teaching History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Expanded(
-              child: _courses.isEmpty 
-              ? const Center(child: Text('No courses created yet'))
-              : ListView.builder(
-                  itemCount: _courses.length,
-                  itemBuilder: (context, i) => Card(
-                    child: ListTile(
-                      title: Text(_courses[i]['title'] ?? 'Course'),
-                      subtitle: Text('${_courses[i]['price']} fr'),
-                      trailing: const Icon(Icons.edit_note_rounded),
-                    ),
-                  ),
-                ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _startChat(dynamic student) {
     Navigator.push(

@@ -17,7 +17,6 @@ class _SignUpScreenState extends State<SignUpScreen> with GoogleSignInMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _newCategoryController = TextEditingController();
-  String _selectedRole = 'Student';
   bool _isLoading = false;
   List<dynamic> _categories = [];
   String? _selectedCategory;
@@ -33,12 +32,7 @@ class _SignUpScreenState extends State<SignUpScreen> with GoogleSignInMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null && args['role'] != null) {
-      setState(() {
-        _selectedRole = args['role'] == 'tutor' ? 'Tutor' : 'Student';
-      });
-    }
+    // Role is always tutor on this skill-swap platform — no action needed
   }
 
   void _fetchCategories() async {
@@ -54,19 +48,12 @@ class _SignUpScreenState extends State<SignUpScreen> with GoogleSignInMixin {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-    final isTutor = _selectedRole == 'Tutor';
+    final isTutor = true; // Everyone uses the unified 'tutor' capability
     String? specialization = _isAddingNewCategory ? _newCategoryController.text.trim() : _selectedCategory;
 
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
-      );
-      return;
-    }
-
-    if (isTutor && (specialization == null || specialization.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tutors must select or add a category')),
+        const SnackBar(content: Text('Please fill all required fields')),
       );
       return;
     }
@@ -74,7 +61,7 @@ class _SignUpScreenState extends State<SignUpScreen> with GoogleSignInMixin {
     setState(() => _isLoading = true);
 
     try {
-      final role = isTutor ? UserRole.tutor : UserRole.student;
+      final role = UserRole.tutor; // All users are tutors on SkillSwap
       
       // If new category, create it first in course-service
       if (isTutor && _isAddingNewCategory) {
@@ -86,7 +73,7 @@ class _SignUpScreenState extends State<SignUpScreen> with GoogleSignInMixin {
         email: email,
         password: password,
         role: role,
-        specialization: isTutor ? specialization : null,
+        specialization: specialization,
       );
 
       // Save session info
@@ -96,6 +83,17 @@ class _SignUpScreenState extends State<SignUpScreen> with GoogleSignInMixin {
         token: response['token'] ?? '',
         role: role,
       );
+
+      // Automatic Sync to user-service
+      try {
+        await ApiService.updateUser(
+          id: response['user']['id'],
+          fullName: response['user']['fullName'] ?? 'User',
+          role: role.toString().split('.').last,
+        );
+      } catch (e) {
+        // Silent sync failure
+      }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -116,8 +114,6 @@ class _SignUpScreenState extends State<SignUpScreen> with GoogleSignInMixin {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Account'),
@@ -139,115 +135,61 @@ class _SignUpScreenState extends State<SignUpScreen> with GoogleSignInMixin {
               ),
               const SizedBox(height: 8),
               Text(
-                "Select how you want to use the platform.",
+                "Everyone on SkillProf is a tutor — share what you know and learn from others.",
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => setState(() => _selectedRole = 'Student'),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: _selectedRole == 'Student' ? AppTheme.primaryPurple.withValues(alpha: 0.1) : Theme.of(context).cardColor,
-                          border: Border.all(
-                            color: _selectedRole == 'Student' ? AppTheme.primaryPurple : (isDark ? Colors.white12 : Colors.grey.shade300),
-                            width: 2,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(Icons.backpack, size: 40, color: _selectedRole == 'Student' ? AppTheme.primaryPurple : Colors.grey),
-                            const SizedBox(height: 8),
-                            Text("Student", style: TextStyle(fontWeight: FontWeight.bold, color: _selectedRole == 'Student' ? AppTheme.primaryPurple : Colors.grey)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => setState(() => _selectedRole = 'Tutor'),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: _selectedRole == 'Tutor' ? AppTheme.primaryPurple.withValues(alpha: 0.1) : Theme.of(context).cardColor,
-                          border: Border.all(
-                            color: _selectedRole == 'Tutor' ? AppTheme.primaryPurple : (isDark ? Colors.white12 : Colors.grey.shade300),
-                            width: 2,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(Icons.school, size: 40, color: _selectedRole == 'Tutor' ? AppTheme.primaryPurple : Colors.grey),
-                            const SizedBox(height: 8),
-                            Text("Tutor", style: TextStyle(fontWeight: FontWeight.bold, color: _selectedRole == 'Tutor' ? AppTheme.primaryPurple : Colors.grey)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-               ],
-              ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
               
-              if (_selectedRole == 'Tutor') ...[
-                Text(
-                  "Area of Specialization",
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                if (!_isAddingNewCategory) 
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedCategory,
-                    decoration: const InputDecoration(
-                      labelText: 'Select Category',
-                      prefixIcon: Icon(Icons.category_outlined),
+              Text(
+                "Area of Specialization (Optional)",
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              if (!_isAddingNewCategory) 
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedCategory,
+                  decoration: const InputDecoration(
+                    labelText: 'Select Category (Optional)',
+                    prefixIcon: Icon(Icons.category_outlined),
+                  ),
+                  items: [
+                    ..._categories.map((cat) => DropdownMenuItem(
+                      value: cat['name'] as String,
+                      child: Text(cat['name'] as String),
+                    )),
+                    const DropdownMenuItem(
+                      value: 'ADD_NEW',
+                      child: Text("+ Add New Category", style: TextStyle(color: AppTheme.primaryPurple, fontWeight: FontWeight.bold)),
                     ),
-                    items: [
-                      ..._categories.map((cat) => DropdownMenuItem(
-                        value: cat['name'] as String,
-                        child: Text(cat['name'] as String),
-                      )),
-                      const DropdownMenuItem(
-                        value: 'ADD_NEW',
-                        child: Text("+ Add New Category", style: TextStyle(color: AppTheme.primaryPurple, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                    onChanged: (val) {
-                      if (val == 'ADD_NEW') {
-                        setState(() => _isAddingNewCategory = true);
-                      } else {
-                        setState(() => _selectedCategory = val);
-                      }
-                    },
-                  )
-                else
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _newCategoryController,
-                          decoration: const InputDecoration(
-                            labelText: 'New Category Name',
-                            hintText: 'e.g. Graphic Design',
-                            prefixIcon: Icon(Icons.add_circle_outline),
-                          ),
+                  ],
+                  onChanged: (val) {
+                    if (val == 'ADD_NEW') {
+                      setState(() => _isAddingNewCategory = true);
+                    } else {
+                      setState(() => _selectedCategory = val);
+                    }
+                  },
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _newCategoryController,
+                        decoration: const InputDecoration(
+                          labelText: 'New Category Name',
+                          hintText: 'e.g. Graphic Design',
+                          prefixIcon: Icon(Icons.add_circle_outline),
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: AppTheme.errorRed),
-                        onPressed: () => setState(() => _isAddingNewCategory = false),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 24),
-              ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: AppTheme.errorRed),
+                      onPressed: () => setState(() => _isAddingNewCategory = false),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 24),
               TextField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -307,7 +249,7 @@ class _SignUpScreenState extends State<SignUpScreen> with GoogleSignInMixin {
               ),
               const SizedBox(height: 24),
               OutlinedButton.icon(
-                onPressed: isGoogleLoading ? null : () => handleGoogleSignIn(initialRole: _selectedRole.toLowerCase()),
+                onPressed: isGoogleLoading ? null : () => handleGoogleSignIn(initialRole: 'tutor'),
                 icon: isGoogleLoading 
                   ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.g_mobiledata, size: 30, color: AppTheme.primaryPurple),

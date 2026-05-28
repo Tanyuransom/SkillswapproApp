@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../services/session_service.dart';
@@ -27,36 +28,53 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isLoading = true;
   List<dynamic> _messages = [];
 
+  Timer? _pollingTimer;
+
   @override
   void initState() {
     super.initState();
     _fetchMessages();
+    _markAsRead();
+    _startPolling();
   }
 
-  Future<void> _fetchMessages() async {
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _fetchMessages(isBackground: true);
+    });
+  }
+
+  Future<void> _markAsRead() async {
+    final myId = SessionService().userId;
+    if (myId == null) return;
+    try {
+      await ApiService.markChatAsRead(myId, widget.partnerId);
+    } catch (e) { /* silent */ }
+  }
+
+  Future<void> _fetchMessages({bool isBackground = false}) async {
     final myId = SessionService().userId;
     if (myId == null) return;
 
     try {
-      final allMessages = await ApiService.getMessages(myId);
-      // Filter for this specific conversation
-      final filtered = allMessages.where((msg) {
-        return (msg['senderId'] == myId && msg['receiverId'] == widget.partnerId) ||
-               (msg['senderId'] == widget.partnerId && msg['receiverId'] == myId);
-      }).toList();
-
-      // Sort by time ascending for chat view
-      filtered.sort((a, b) => DateTime.parse(a['createdAt']).compareTo(DateTime.parse(b['createdAt'])));
+      final history = await ApiService.getChatHistory(myId, widget.partnerId);
+      final List<dynamic> newMessages = history['messages'] ?? [];
 
       if (mounted) {
         setState(() {
-          _messages = filtered;
-          _isLoading = false;
+          _messages = newMessages;
+          if (!isBackground) _isLoading = false;
         });
-        _scrollToBottom();
+        if (!isBackground) _scrollToBottom();
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && !isBackground) setState(() => _isLoading = false);
     }
   }
 
@@ -98,6 +116,8 @@ class _ChatScreenState extends State<ChatScreen> {
         receiverId: widget.partnerId,
         content: content,
         senderName: SessionService().fullName,
+        senderAvatarUrl: SessionService().avatarUrl,
+        senderRole: SessionService().role,
       );
       // Re-fetch to ensure sync with server timestamps
       _fetchMessages();
@@ -152,23 +172,58 @@ class _ChatScreenState extends State<ChatScreen> {
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Row(
                           mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
+                            if (!isMe) ...[
+                              CircleAvatar(
+                                radius: 14,
+                                backgroundColor: AppTheme.primaryPurple.withValues(alpha: 0.1),
+                                backgroundImage: (msg['senderAvatarUrl'] != null && msg['senderAvatarUrl'].isNotEmpty)
+                                    ? NetworkImage(UrlHelper.fixIp(msg['senderAvatarUrl'])) as ImageProvider
+                                    : null,
+                                child: (msg['senderAvatarUrl'] == null || msg['senderAvatarUrl'].isEmpty)
+                                    ? Text(
+                                        (msg['senderName'] != null && msg['senderName'].isNotEmpty) ? msg['senderName'][0].toUpperCase() : '?',
+                                        style: const TextStyle(fontSize: 10, color: AppTheme.primaryPurple),
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 8),
+                            ],
                             Flexible(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: isMe ? AppTheme.primaryPurple : (isDark ? AppTheme.cardDark : Colors.grey.shade200),
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: const Radius.circular(16),
-                                    topRight: const Radius.circular(16),
-                                    bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(4),
-                                    bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(16),
+                              child: Column(
+                                crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 4, bottom: 4),
+                                      child: Text(
+                                        "${isMe ? 'You' : (msg['senderName'] ?? widget.partnerName)} (${msg['senderRole'] ?? (isMe ? SessionService().role : 'Tutor')})",
+                                        style: TextStyle(
+                                          fontSize: 10, 
+                                          fontWeight: FontWeight.bold,
+                                          color: (msg['senderRole'] == 'tutor' || (isMe && SessionService().isTutor)) 
+                                              ? AppTheme.primaryPurple 
+                                              : Colors.grey,
+                                        ),
+                                      ),
+                                    ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: isMe ? AppTheme.primaryPurple : (isDark ? AppTheme.cardDark : Colors.grey.shade200),
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: const Radius.circular(16),
+                                        topRight: const Radius.circular(16),
+                                        bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(4),
+                                        bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(16),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      msg['content'],
+                                      style: TextStyle(color: isMe ? Colors.white : (isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimaryLight)),
+                                    ),
                                   ),
-                                ),
-                                child: Text(
-                                  msg['content'],
-                                  style: TextStyle(color: isMe ? Colors.white : (isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimaryLight)),
-                                ),
+                                ],
                               ),
                             ),
                           ],

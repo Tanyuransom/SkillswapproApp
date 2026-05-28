@@ -18,9 +18,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // For now, names are locally managed, but in a real app 
-    // you would fetch the current profile from the backend here.
-    _nameController.text = "Learner Account"; 
+    final session = SessionService();
+    _nameController.text = session.fullName ?? "";
+    _fetchCurrentProfile();
+  }
+
+  Future<void> _fetchCurrentProfile() async {
+    final userId = SessionService().userId;
+    if (userId == null) return;
+    try {
+      final user = await ApiService.getUser(userId);
+      if (mounted) {
+        setState(() {
+          _nameController.text = user['fullName'] ?? "";
+          _specController.text = user['specialization'] ?? "";
+        });
+      }
+    } catch (e) { /* silent */ }
   }
 
   void _saveProfile() async {
@@ -41,6 +55,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await ApiService.updateUser(
         id: session.userId ?? '',
         fullName: name,
+        specialization: session.isTutor ? spec : null,
+      );
+
+      // Update local session
+      await session.saveSession(
+        userId: session.userId!,
+        fullName: name,
+        token: session.token!,
+        role: session.currentRole,
+        avatarUrl: session.avatarUrl,
         specialization: session.isTutor ? spec : null,
       );
 

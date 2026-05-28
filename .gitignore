@@ -1,17 +1,20 @@
 node_modules/
+**/node_modules/
 dist/
+**/dist/
 build/
+**/build/
 .env
+**/.env
+**/.env.*
+**/uploads/
+dist_package/
 
-backend/auth-service/node_modules/
-backend/course-service/node_modules/
-backend/auth-service/dist/
-backend/course-service/dist/
-backend/auth-service/uploads/
-backend/course-service/uploads/
+# Large zip archives
+*.zip
+SkillSwapPro_Test_Pack.zip
 
-backend/postgres_data/
-
+# OS and IDEs
 .DS_Store
 .idea/
 .vscode/

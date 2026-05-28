@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import '../../theme/app_theme.dart';
-import '../../services/api_service.dart';
 import '../../services/session_service.dart';
-import '../../models/user_role.dart';
 import '../../utils/auth_helper.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -14,7 +11,7 @@ class WelcomeScreen extends StatefulWidget {
 }
 
 class _WelcomeScreenState extends State<WelcomeScreen> with GoogleSignInMixin {
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   @override
   Widget _buildRoleCard(BuildContext context, String title, IconData icon, String role) {
@@ -52,7 +49,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with GoogleSignInMixin {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("Join as ${role.toUpperCase()}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text("Get Started", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 24),
                 ListTile(
                   leading: const Icon(Icons.g_mobiledata, size: 40, color: AppTheme.primaryPurple),
@@ -62,7 +59,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with GoogleSignInMixin {
                 const Divider(),
                 ListTile(
                   leading: const Icon(Icons.edit_note_rounded, size: 30, color: AppTheme.secondaryOrange),
-                  title: const Text("Join manually with Email"),
+                  title: const Text("Sign Up with Email"),
                   onTap: () => Navigator.pop(context, 'manual'),
                 ),
               ],
@@ -70,15 +67,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> with GoogleSignInMixin {
           ),
         );
 
+        // We use 'tutor' as the default unified role for everyone
         if (choice == 'google') {
-          handleGoogleSignIn(initialRole: role);
+          handleGoogleSignIn(initialRole: 'tutor');
         } else if (choice == 'manual') {
-          Navigator.pushNamed(context, '/signup', arguments: {'role': role});
+          Navigator.pushNamed(context, '/signup', arguments: {'role': 'tutor'});
         }
       },
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+        width: double.infinity,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -92,16 +91,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> with GoogleSignInMixin {
         ),
         child: Column(
           children: [
-            Icon(icon, color: AppTheme.primaryPurple, size: 32),
+            Icon(icon, color: AppTheme.primaryPurple, size: 40),
             const SizedBox(height: 12),
             Text(
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontWeight: FontWeight.bold, 
-                fontSize: 12,
+                fontSize: 16,
                 color: AppTheme.primaryPurple,
-                letterSpacing: 0.5,
+                letterSpacing: 1.0,
               ),
             ),
           ],
@@ -217,27 +216,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> with GoogleSignInMixin {
                   if (_isLoading)
                     const Center(child: CircularProgressIndicator(color: Colors.white))
                   else ...[
-                    // CHOICE BUTTONS
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildChoiceCard(
-                            context,
-                            "JOIN AS STUDENT",
-                            Icons.school_outlined,
-                            "student",
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildChoiceCard(
-                            context,
-                            "JOIN AS TUTOR",
-                            Icons.workspace_premium_outlined,
-                            "tutor",
-                          ),
-                        ),
-                      ],
+                    // GET STARTED BUTTON
+                    _buildChoiceCard(
+                      context,
+                      "GET STARTED",
+                      Icons.rocket_launch_rounded,
+                      "tutor",
                     ),
                     
                     const SizedBox(height: 32),
