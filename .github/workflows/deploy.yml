@@ -1,6 +1,5 @@
 name: Deploy Backend to Contabo VPS
 
-# Triggered on push to main branch
 on:
   push:
     branches:
@@ -12,8 +11,15 @@ jobs:
     steps:
       - name: Deploy via Native SSH
         run: |
+          # 1. Prepare SSH directory
           mkdir -p ~/.ssh
           echo "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/id_ed25519 ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cd /opt/skillprof && git pull origin main && cd backend && docker-compose up -d --build"
+          
+          # 2. Clean up secrets (strip any leading/trailing spaces or newlines)
+          HOST=$(echo "${{ secrets.VPS_HOST }}" | xargs)
+          USER=$(echo "${{ secrets.VPS_USER }}" | xargs)
+          
+          # 3. Scan host and run deployment
+          ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_ed25519 $USER@$HOST "cd /opt/skillprof && git pull origin main && cd backend && docker-compose up -d --build"
