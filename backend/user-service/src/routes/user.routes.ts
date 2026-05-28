@@ -27,6 +27,10 @@ router.get("/", UserController.getAllUsers);
 router.post("/", UserController.createUser);
 router.post("/batch", UserController.getUsersBatch);
 router.put("/:id", UserController.updateUser);
+router.post("/follow", UserController.followTutor);
+router.post("/unfollow", UserController.unfollowTutor);
+router.get("/follow/check", UserController.checkFollowStatus);
+router.get("/followers/:tutorId", UserController.getFollowers);
 router.get("/:id", UserController.getUser);
 router.delete("/:id", UserController.deleteUser);
 

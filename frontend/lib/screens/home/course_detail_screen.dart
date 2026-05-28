@@ -25,6 +25,8 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   bool _isFetchingReviews = true;
   bool _isEnrolled = false;
   bool _isCheckingEnrollment = true;
+  bool _isFollowing = false;
+  bool _isCheckingFollow = true;
 
   @override
   void initState() {
@@ -37,6 +39,71 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     }
     _fetchReviews();
     _checkEnrollment();
+    _checkFollowStatus();
+  }
+
+  Future<void> _checkFollowStatus() async {
+    final followerId = SessionService().userId;
+    final tutorId = widget.course['instructorId'];
+    if (followerId == null || tutorId == null) {
+      if (mounted) setState(() => _isCheckingFollow = false);
+      return;
+    }
+    try {
+      final isFollowing = await ApiService.checkFollowStatus(
+        followerId: followerId,
+        tutorId: tutorId,
+      );
+      if (mounted) {
+        setState(() {
+          _isFollowing = isFollowing;
+          _isCheckingFollow = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isCheckingFollow = false);
+    }
+  }
+
+  Future<void> _toggleFollow() async {
+    final followerId = SessionService().userId;
+    final tutorId = widget.course['instructorId'];
+    if (followerId == null || tutorId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please sign in to follow")));
+      return;
+    }
+    
+    final previouslyFollowing = _isFollowing;
+    setState(() {
+      _isFollowing = !_isFollowing;
+    });
+
+    try {
+      if (previouslyFollowing) {
+        await ApiService.unfollowTutor(followerId: followerId, tutorId: tutorId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Unfollowed $_instructorName")),
+          );
+        }
+      } else {
+        await ApiService.followTutor(followerId: followerId, tutorId: tutorId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Followed $_instructorName!"), backgroundColor: AppTheme.successGreen),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isFollowing = previouslyFollowing;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"), backgroundColor: AppTheme.errorRed),
+        );
+      }
+    }
   }
 
   Future<void> _checkEnrollment() async {
@@ -186,9 +253,29 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                     subtitle: const Text("Content Creator & Expert"),
-                    trailing: OutlinedButton(
-                      onPressed: () => _startChat(),
-                      child: const Text("Message"),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!_isCheckingFollow && SessionService().userId != widget.course['instructorId']) ...[
+                          ElevatedButton(
+                            onPressed: _toggleFollow,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _isFollowing ? Colors.grey : AppTheme.primaryPurple,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              minimumSize: const Size(60, 32),
+                            ),
+                            child: Text(
+                              _isFollowing ? "Following" : "Follow",
+                              style: const TextStyle(fontSize: 12, color: Colors.white),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        OutlinedButton(
+                          onPressed: () => _startChat(),
+                          child: const Text("Message"),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 32),

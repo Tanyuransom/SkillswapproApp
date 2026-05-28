@@ -339,12 +339,68 @@ class _VideoFeedItemState extends State<VideoFeedItem> {
   bool _isError = false;
   bool _isInitialized = false;
   bool _isFavorite = false;
+  bool _isFollowingTutor = false;
+  bool _isCheckingFollowTutor = true;
 
   @override
   void initState() {
     super.initState();
     _isFavorite = widget.videoData['isLiked'] ?? false;
     _initializeController();
+    _checkFollowTutorStatus();
+  }
+
+  void _checkFollowTutorStatus() async {
+    final followerId = SessionService().userId;
+    final tutorId = widget.videoData['tutorId'];
+    if (followerId == null || tutorId == null || followerId == tutorId) {
+      if (mounted) setState(() => _isCheckingFollowTutor = false);
+      return;
+    }
+    try {
+      final isFollowing = await ApiService.checkFollowStatus(
+        followerId: followerId,
+        tutorId: tutorId,
+      );
+      if (mounted) {
+        setState(() {
+          _isFollowingTutor = isFollowing;
+          _isCheckingFollowTutor = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isCheckingFollowTutor = false);
+    }
+  }
+
+  void _toggleFollowTutor() async {
+    final followerId = SessionService().userId;
+    final tutorId = widget.videoData['tutorId'];
+    if (followerId == null || tutorId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please sign in to follow")));
+      return;
+    }
+
+    try {
+      await ApiService.followTutor(followerId: followerId, tutorId: tutorId);
+      if (mounted) {
+        setState(() {
+          _isFollowingTutor = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Followed ${widget.videoData['tutor']}!"),
+            backgroundColor: AppTheme.successGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"), backgroundColor: AppTheme.errorRed),
+        );
+      }
+    }
   }
 
   void _initializeController() {
@@ -595,18 +651,53 @@ class _VideoFeedItemState extends State<VideoFeedItem> {
 
   Widget _buildProfileIcon() {
     final avatarUrl = widget.videoData['tutorAvatarUrl'];
-    return Container(
-      width: 50, height: 50,
-      decoration: BoxDecoration(
-        color: Colors.white, shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-        image: DecorationImage(
-          image: avatarUrl != null && avatarUrl.isNotEmpty
-              ? NetworkImage(avatarUrl) as ImageProvider
-              : const AssetImage('assets/images/tutor.png'),
-          fit: BoxFit.cover,
+    final followerId = SessionService().userId;
+    final tutorId = widget.videoData['tutorId'];
+    
+    final showFollowButton = followerId != null &&
+        tutorId != null &&
+        followerId != tutorId &&
+        !_isCheckingFollowTutor &&
+        !_isFollowingTutor;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.bottomCenter,
+      children: [
+        Container(
+          width: 50, height: 50,
+          decoration: BoxDecoration(
+            color: Colors.white, shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+            image: DecorationImage(
+              image: avatarUrl != null && avatarUrl.isNotEmpty
+                  ? NetworkImage(avatarUrl) as ImageProvider
+                  : const AssetImage('assets/images/tutor.png'),
+              fit: BoxFit.cover,
+            ),
+          ),
         ),
-      ),
+        if (showFollowButton)
+          Positioned(
+            bottom: -6,
+            child: GestureDetector(
+              onTap: _toggleFollowTutor,
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: const BoxDecoration(
+                  color: AppTheme.secondaryOrange,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.add,
+                  color: Colors.white,
+                  size: 14,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 

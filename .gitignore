@@ -13,6 +13,8 @@ dist_package/
 # Large zip archives
 *.zip
 SkillSwapPro_Test_Pack.zip
+*.apk
+
 
 # OS and IDEs
 .DS_Store

@@ -19,6 +19,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   String _selectedCategory = 'All';
   bool _isLoading = true;
 
+  int _selectedLevel = 1;
+  String? _selectedSpecialty;
+  int? _lastLoadedLevel;
+  String? _lastLoadedSpecialty;
+  final List<String> _specialties = ['ICT', 'ISN', 'CS', 'SEN', 'CYS'];
+
   @override
   void initState() {
     super.initState();
@@ -31,11 +37,14 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       await session.init();
       final cats = await ApiService.getCategories();
       
-      final specialtyFilter = session.academicSpecialty;
+      _selectedLevel = session.academicLevel;
+      _selectedSpecialty = session.academicSpecialty ?? 'SEN';
+      _lastLoadedLevel = _selectedLevel;
+      _lastLoadedSpecialty = _selectedSpecialty;
       
       final courses = await ApiService.getCourses(
-        level: session.academicLevel,
-        specialty: specialtyFilter,
+        level: _selectedLevel,
+        specialty: _selectedSpecialty,
       );
       if (mounted) {
         setState(() {
@@ -56,23 +65,17 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   Future<void> _fetchFilteredCourses(String query, String categoryName) async {
     setState(() => _isLoading = true);
     try {
-      final session = SessionService();
       String? catId;
       if (categoryName != 'All') {
         final cat = _categories.firstWhere((c) => c['name'] == categoryName, orElse: () => null);
         if (cat != null) catId = cat['id'];
       }
 
-      String? specialtyFilter = session.academicSpecialty;
-      if (categoryName != 'All' && ['ICT', 'ISN', 'CS', 'SEN', 'CYS', 'REN', 'JMC', 'BMS'].contains(categoryName)) {
-        specialtyFilter = categoryName;
-      }
-
       final results = await ApiService.getCourses(
         categoryId: catId, 
         query: query.isEmpty ? null : query,
-        level: session.academicLevel,
-        specialty: specialtyFilter,
+        level: _selectedLevel,
+        specialty: _selectedSpecialty,
       );
       if (mounted) {
         setState(() {
@@ -115,7 +118,19 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+    final session = SessionService();
+
+    if (_lastLoadedLevel != session.academicLevel ||
+        _lastLoadedSpecialty != session.academicSpecialty) {
+      _lastLoadedLevel = session.academicLevel;
+      _lastLoadedSpecialty = session.academicSpecialty;
+      _selectedLevel = session.academicLevel;
+      _selectedSpecialty = session.academicSpecialty ?? 'SEN';
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fetchFilteredCourses(_searchController.text, _selectedCategory);
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Discover Skills'),
@@ -143,7 +158,92 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                   : const Icon(Icons.filter_list, color: AppTheme.primaryPurple),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // --- LEVEL SELECTOR ---
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Select Level", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [1, 2, 3, 4].map((level) {
+                  final isSelected = _selectedLevel == level;
+                  return GestureDetector(
+                    onTap: () async {
+                      await session.updateAcademicPreferences(level, _selectedSpecialty);
+                      setState(() {
+                        _selectedLevel = level;
+                        _lastLoadedLevel = level;
+                      });
+                      _fetchFilteredCourses(_searchController.text, _selectedCategory);
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppTheme.primaryPurple : AppTheme.primaryPurple.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(
+                        "L$level",
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : AppTheme.primaryPurple,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+            Text("Select Specialty", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _specialties.map((specialty) {
+                  final isSelected = _selectedSpecialty == specialty;
+                  return GestureDetector(
+                    onTap: () async {
+                      await session.updateAcademicPreferences(_selectedLevel, specialty);
+                      setState(() {
+                        _selectedSpecialty = specialty;
+                        _lastLoadedSpecialty = specialty;
+                      });
+                      _fetchFilteredCourses(_searchController.text, _selectedCategory);
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppTheme.secondaryOrange : AppTheme.secondaryOrange.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.secondaryOrange.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(
+                        specialty,
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : AppTheme.secondaryOrange,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+            const SizedBox(height: 16),
 
             // Categories list
             SizedBox(

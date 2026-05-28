@@ -3,6 +3,7 @@ import { AppDataSource } from "../data-source";
 import { Course } from "../entities/Course";
 import { CourseReview } from "../entities/CourseReview";
 import { ILike, Like } from "typeorm";
+import axios from "axios";
 
 export class CourseController {
   static async getAll(req: Request, res: Response) {
@@ -111,6 +112,32 @@ export class CourseController {
         semester,
       });
       await courseRepository.save(course);
+
+      // Asynchronously notify followers
+      try {
+        axios.get(`http://user-service:3003/followers/${instructorId}`)
+          .then(async (response) => {
+            const followers = response.data; // array of user IDs
+            if (Array.isArray(followers)) {
+              for (const followerId of followers) {
+                await axios.post(`http://notification-service:3007/`, {
+                  userId: followerId,
+                  title: "New Course uploaded!",
+                  message: `${instructorName || 'Tutor'} uploaded a new course: ${title}`,
+                  type: "new_course"
+                }).catch((err) => {
+                  console.error(`[CourseService] Failed to notify follower ${followerId}:`, err.message);
+                });
+              }
+            }
+          })
+          .catch((err) => {
+            console.error(`[CourseService] Failed to fetch followers:`, err.message);
+          });
+      } catch (notifyErr: any) {
+        console.error(`[CourseService] Notification dispatch error:`, notifyErr.message);
+      }
+
       res.status(201).json(course);
     } catch (error) {
       res.status(500).json({ error: "Failed to create course" });

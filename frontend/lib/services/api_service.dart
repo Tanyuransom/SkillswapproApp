@@ -6,7 +6,7 @@ import '../services/session_service.dart';
 
 class ApiService {
   // --- CENTRAL GATEWAY CONFIGURATION ---
-  static const String hostIp = '10.16.43.132'; 
+  static const String hostIp = '167.86.100.54'; 
   static const String baseUrl = 'http://$hostIp:3000/api';
   static const Duration timeoutDuration = Duration(seconds: 15);
   
@@ -804,6 +804,62 @@ class ApiService {
         body: jsonEncode({'userId': userId, 'levelId': levelId}),
       ).timeout(timeoutDuration);
     } catch (e) { /* silent */ }
+  }
+
+  // --- FOLLOW SYSTEM ---
+  static Future<Map<String, dynamic>> followTutor({
+    required String followerId,
+    required String tutorId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/follow'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'followerId': followerId, 'tutorId': tutorId}),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      }
+      throw Exception('Failed to follow: ${response.body}');
+    } catch (e) {
+      throw Exception('Follow error: ${e.toString()}');
+    }
+  }
+
+  static Future<Map<String, dynamic>> unfollowTutor({
+    required String followerId,
+    required String tutorId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/unfollow'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'followerId': followerId, 'tutorId': tutorId}),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw Exception('Failed to unfollow: ${response.body}');
+    } catch (e) {
+      throw Exception('Unfollow error: ${e.toString()}');
+    }
+  }
+
+  static Future<bool> checkFollowStatus({
+    required String followerId,
+    required String tutorId,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/follow/check?followerId=$followerId&tutorId=$tutorId'),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body)['isFollowing'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
   }
 }
 

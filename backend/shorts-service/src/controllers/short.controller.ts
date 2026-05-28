@@ -79,6 +79,32 @@ export class ShortController {
         categoryId,
       });
       await shortRepository.save(short);
+
+      // Asynchronously notify followers
+      try {
+        axios.get(`http://user-service:3003/followers/${tutorId}`)
+          .then(async (response) => {
+            const followers = response.data; // array of user IDs
+            if (Array.isArray(followers)) {
+              for (const followerId of followers) {
+                await axios.post(`http://notification-service:3007/`, {
+                  userId: followerId,
+                  title: "New Short uploaded!",
+                  message: `${tutorName || 'Tutor'} uploaded a new short: ${courseName}`,
+                  type: "new_short"
+                }).catch((err) => {
+                  console.error(`[ShortsService] Failed to notify follower ${followerId}:`, err.message);
+                });
+              }
+            }
+          })
+          .catch((err) => {
+            console.error(`[ShortsService] Failed to fetch followers:`, err.message);
+          });
+      } catch (notifyErr: any) {
+        console.error(`[ShortsService] Notification dispatch error:`, notifyErr.message);
+      }
+
       res.status(201).json(short);
     } catch (error) {
       console.error("[ShortsService] Create Error:", error);

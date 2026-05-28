@@ -75,7 +75,10 @@ class _UploadShortScreenState extends State<UploadShortScreen> {
 
   Future<void> _pickVideo() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickVideo(source: ImageSource.gallery);
+    final pickedFile = await picker.pickVideo(
+      source: ImageSource.gallery,
+      maxDuration: const Duration(seconds: 60),
+    );
     if (pickedFile != null) {
       setState(() => _selectedVideo = pickedFile);
     }
@@ -204,6 +207,28 @@ class _UploadShortScreenState extends State<UploadShortScreen> {
                       ],
                     ),
                   ),
+                ),
+              ),
+
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.secondaryOrange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.secondaryOrange.withValues(alpha: 0.3)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: AppTheme.secondaryOrange, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "Tip: Videos are limited to 60 seconds. Shorter videos upload significantly faster!",
+                        style: TextStyle(color: AppTheme.secondaryOrange, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
