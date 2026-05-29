@@ -3,6 +3,8 @@ const proxy = require('express-http-proxy');
 const cors = require('cors');
 const morgan = require('morgan');
 const compression = require('compression');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -11,6 +13,26 @@ const PORT = process.env.PORT || 3000;
 app.use(compression());
 app.use(cors());
 app.use(morgan('dev'));
+
+// --- APK DOWNLOAD ROUTE ---
+app.get('/api/download/apk', (req, res) => {
+  const apkPath = path.join(__dirname, 'shared/skillswap.apk');
+  console.log(`[Gateway] APK Download requested. Checking path: ${apkPath}`);
+  
+  if (fs.existsSync(apkPath)) {
+    res.download(apkPath, 'skillswap.apk', (err) => {
+      if (err) {
+        console.error(`[Gateway] Error during APK download:`, err);
+        if (!res.headersSent) {
+          res.status(500).send('Error downloading file');
+        }
+      }
+    });
+  } else {
+    console.warn(`[Gateway] APK Download failed: File not found at ${apkPath}`);
+    res.status(404).send('APK file not found on the server. Please upload it first.');
+  }
+});
 
 app.use((req, res, next) => {
   console.log(`[Gateway] ${req.method} ${req.url}`);

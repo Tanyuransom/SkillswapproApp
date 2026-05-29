@@ -76,6 +76,8 @@ services:
       - "3000:3000"
     environment:
       - PORT=3000
+    volumes:
+      - ./gateway-service/shared:/app/shared
     depends_on:
       - identity-service
       - course-service
