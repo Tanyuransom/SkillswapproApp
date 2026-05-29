@@ -8,7 +8,7 @@ class ApiService {
   // --- CENTRAL GATEWAY CONFIGURATION ---
   static const String hostIp = '167.86.100.54'; 
   static const String baseUrl = 'http://$hostIp:3000/api';
-  static const Duration timeoutDuration = Duration(seconds: 15);
+  static const Duration timeoutDuration = Duration(seconds: 30);
   
   // --- MEDIA UPLOADS (Now routed through specific services via Gateway) ---
   
@@ -859,6 +859,21 @@ class ApiService {
       return false;
     } catch (e) {
       return false;
+    }
+  }
+
+  // --- APP VERSION CONTROL ---
+  static Future<Map<String, dynamic>> getLatestAppVersion() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/app-version'),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw Exception('Version check failed: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Version check error: ${e.toString()}');
     }
   }
 }

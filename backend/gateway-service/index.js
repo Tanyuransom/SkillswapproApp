@@ -34,6 +34,15 @@ app.get('/api/download/apk', (req, res) => {
   }
 });
 
+// --- APP VERSION ROUTE ---
+app.get('/api/app-version', (req, res) => {
+  res.json({
+    versionCode: 2,
+    versionName: '1.0.1',
+    url: 'http://167.86.100.54:3000/api/download/apk'
+  });
+});
+
 app.use((req, res, next) => {
   console.log(`[Gateway] ${req.method} ${req.url}`);
   next();
@@ -89,6 +98,7 @@ app.use('/api/comments', proxy(SERVICES.comments, proxyOptions));
 app.use('/api/shares', proxy(SERVICES.shares, proxyOptions));
 app.use('/api/levels', proxy(SERVICES.levels, proxyOptions));
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 API Gateway running on port ${PORT}`);
 });
+server.timeout = 10 * 60 * 1000; // 10 minutes timeout for file uploads

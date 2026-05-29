@@ -1,8 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../theme/app_theme.dart';
+import '../../services/api_service.dart';
 
-class LandingScreen extends StatelessWidget {
+class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
+
+  @override
+  State<LandingScreen> createState() => _LandingScreenState();
+}
+
+class _LandingScreenState extends State<LandingScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAppVersion();
+    });
+  }
+
+  Future<void> _checkAppVersion() async {
+    const int currentVersionCode = 1;
+    try {
+      final latest = await ApiService.getLatestAppVersion();
+      final serverVersionCode = latest['versionCode'] as int? ?? 1;
+      final serverVersionName = latest['versionName'] as String? ?? '1.0.0';
+      final downloadUrl = latest['url'] as String? ?? '';
+
+      if (serverVersionCode > currentVersionCode && mounted) {
+        _showUpdateDialog(serverVersionName, downloadUrl);
+      }
+    } catch (e) {
+      // Silent on startup failure to prevent locking the app if offline
+    }
+  }
+
+  void _showUpdateDialog(String versionName, String downloadUrl) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.system_update_rounded, color: AppTheme.primaryPurple, size: 28),
+            SizedBox(width: 12),
+            Text("Update Available", style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          "A new version ($versionName) of SkillProf is available. Update now to access the latest features and fixes.",
+          style: const TextStyle(fontSize: 15, height: 1.4),
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("LATER", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final uri = Uri.parse(downloadUrl);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryPurple,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text("UPDATE NOW", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -198,4 +271,5 @@ class LandingScreen extends StatelessWidget {
       ],
     );
   }
+}
 }
