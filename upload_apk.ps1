@@ -71,17 +71,17 @@ if (-not (Test-Path $sshKeyPath)) {
 }
 
 Write-Host ""
-Write-Host "[3/3] Uploading APK to VPS at $vpsHost..." -ForegroundColor Green
+Write-Host "[3/3] Uploading APK to VPS at $($vpsHost)..." -ForegroundColor Green
 
 # Use native Windows scp to upload
 try {
-    Write-Host "Running: scp -i `"$sshKeyPath`" `"$apkPath`" $vpsUser@$vpsHost`:$defaultRemotePath" -ForegroundColor DarkGray
-    scp -i "$sshKeyPath" "$apkPath" "${vpsUser}@${vpsHost}:${defaultRemotePath}"
+    Write-Host "Running: scp -i `"$sshKeyPath`" `"$apkPath`" $($vpsUser)@$($vpsHost):$defaultRemotePath" -ForegroundColor DarkGray
+    scp -i "$sshKeyPath" "$apkPath" "$($vpsUser)@$($vpsHost):$defaultRemotePath"
     
     Write-Host "Setting file permissions on VPS..." -ForegroundColor DarkGray
-    ssh -i "$sshKeyPath" "${vpsUser}@${vpsHost}" "chmod 644 $defaultRemotePath"
+    ssh -i "$sshKeyPath" "$($vpsUser)@$($vpsHost)" "chmod 644 $defaultRemotePath"
     
-    Write-Host "`n✔ APK successfully uploaded and is now live at: http://$vpsHost:3000/api/download/apk" -ForegroundColor Green
+    Write-Host "`n✔ APK successfully uploaded and is now live at: http://$($vpsHost):3000/api/download/apk" -ForegroundColor Green
 } catch {
     Write-Host "`n❌ Upload failed! Please check:" -ForegroundColor Red
     Write-Host "1. Your SSH private key has correct access permissions to the VPS."
