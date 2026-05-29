@@ -50,7 +50,10 @@ $vpsUser = Read-Host "Enter VPS SSH username [Default: $defaultUser]"
 if ([string]::IsNullOrWhiteSpace($vpsUser)) { $vpsUser = $defaultUser }
 
 # Prompt for Private Key Path
-$defaultKey = Join-Path [System.Environment]::GetFolderPath("UserProfile") ".ssh\id_rsa"
+$defaultKey = Join-Path $env:USERPROFILE ".ssh\skillprof_vps"
+if (-not (Test-Path $defaultKey)) {
+    $defaultKey = Join-Path $env:USERPROFILE ".ssh\id_rsa"
+}
 if (-not (Test-Path $defaultKey)) {
     $defaultKey = ""
 }
