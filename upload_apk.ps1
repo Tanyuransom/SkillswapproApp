@@ -81,9 +81,9 @@ try {
     Write-Host "Setting file permissions on VPS..." -ForegroundColor DarkGray
     ssh -i "$sshKeyPath" "$($vpsUser)@$($vpsHost)" "chmod 644 $defaultRemotePath"
     
-    Write-Host "`n✔ APK successfully uploaded and is now live at: http://$($vpsHost):3000/api/download/apk" -ForegroundColor Green
+    Write-Host "`n[SUCCESS] APK successfully uploaded and is now live at: http://$($vpsHost):3000/api/download/apk" -ForegroundColor Green
 } catch {
-    Write-Host "`n❌ Upload failed! Please check:" -ForegroundColor Red
+    Write-Host "`n[ERROR] Upload failed! Please check:" -ForegroundColor Red
     Write-Host "1. Your SSH private key has correct access permissions to the VPS."
     Write-Host "2. The directory '/opt/skillprof/backend/gateway-service/shared' exists on the VPS."
     Write-Host "   (Note: The directory is created automatically when the latest docker-compose config deploys)."
