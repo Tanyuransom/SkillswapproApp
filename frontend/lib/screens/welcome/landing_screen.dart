@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:ota_update/ota_update.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
 
@@ -60,9 +62,19 @@ class _LandingScreenState extends State<LandingScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              final uri = Uri.parse(downloadUrl);
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              Navigator.pop(context);
+              
+              final bool? success = await showDialog<bool>(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => _UpdateProgressDialog(downloadUrl: downloadUrl),
+              );
+
+              if (success != true && mounted) {
+                final uri = Uri.parse(downloadUrl);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
               }
             },
             style: ElevatedButton.styleFrom(
@@ -79,7 +91,6 @@ class _LandingScreenState extends State<LandingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -269,6 +280,135 @@ class _LandingScreenState extends State<LandingScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _UpdateProgressDialog extends StatefulWidget {
+  final String downloadUrl;
+  const _UpdateProgressDialog({required this.downloadUrl});
+
+  @override
+  State<_UpdateProgressDialog> createState() => _UpdateProgressDialogState();
+}
+
+class _UpdateProgressDialogState extends State<_UpdateProgressDialog> {
+  double _progress = 0.0;
+  String _statusMessage = "Connecting to server...";
+  bool _hasError = false;
+  StreamSubscription<OtaEvent>? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _startDownload();
+  }
+
+  void _startDownload() {
+    try {
+      _subscription = OtaUpdate().execute(
+        widget.downloadUrl,
+        destinationFilename: 'skillswap.apk',
+      ).listen(
+        (OtaEvent event) {
+          setState(() {
+            switch (event.status) {
+              case OtaStatus.DOWNLOADING:
+                _statusMessage = "Downloading new version...";
+                _progress = double.tryParse(event.value ?? '0') ?? 0.0;
+                break;
+              case OtaStatus.INSTALLING:
+                _statusMessage = "Opening installer...";
+                _progress = 100.0;
+                Future.delayed(const Duration(seconds: 1), () {
+                  if (mounted) Navigator.of(context).pop(true);
+                });
+                break;
+              case OtaStatus.PERMISSION_NOT_GRANTED_ERROR:
+                _statusMessage = "Install permission denied.";
+                _hasError = true;
+                _fallback();
+                break;
+              case OtaStatus.INTERNAL_ERROR:
+                _statusMessage = "Internal download error.";
+                _hasError = true;
+                _fallback();
+                break;
+              default:
+                _statusMessage = "Failed to update.";
+                _hasError = true;
+                _fallback();
+                break;
+            }
+          });
+        },
+        onError: (err) {
+          setState(() {
+            _statusMessage = "Download failed: $err";
+            _hasError = true;
+            _fallback();
+          });
+        },
+      );
+    } catch (e) {
+      setState(() {
+        _statusMessage = "Failed to initiate update: $e";
+        _hasError = true;
+        _fallback();
+      });
+    }
+  }
+
+  void _fallback() {
+    Future.delayed(const Duration(seconds: 2), () async {
+      if (mounted) {
+        Navigator.of(context).pop(false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Row(
+        children: [
+          Icon(
+            _hasError ? Icons.error_outline : Icons.downloading,
+            color: _hasError ? AppTheme.errorRed : AppTheme.primaryPurple,
+            size: 28,
+          ),
+          const SizedBox(width: 12),
+          Text(_hasError ? "Update Failed" : "Installing Update", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(_statusMessage, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15)),
+          const SizedBox(height: 24),
+          if (!_hasError) ...[
+            LinearProgressIndicator(
+              value: _progress / 100,
+              backgroundColor: AppTheme.primaryPurple.withValues(alpha: 0.1),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryPurple),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "${_progress.toStringAsFixed(0)}%",
+              style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryPurple, fontSize: 16),
+            ),
+          ] else ...[
+            const Text("Falling back to browser download...", style: TextStyle(color: Colors.grey, fontSize: 12)),
+          ]
+        ],
+      ),
     );
   }
 }
