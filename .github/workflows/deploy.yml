@@ -22,4 +22,4 @@ jobs:
           
           # 3. Scan host and run deployment
           ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/id_ed25519 $USER@$HOST "cd /opt/skillprof && git pull origin main && cd backend && docker-compose up -d --build"
+          ssh -i ~/.ssh/id_ed25519 $USER@$HOST "cd /opt/skillprof && git pull origin main && cd backend && docker-compose down && docker-compose up -d --build"
