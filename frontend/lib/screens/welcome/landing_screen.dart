@@ -22,7 +22,7 @@ class _LandingScreenState extends State<LandingScreen> {
   }
 
   Future<void> _checkAppVersion() async {
-    const int currentVersionCode = 1;
+    const int currentVersionCode = 3;
     try {
       final latest = await ApiService.getLatestAppVersion();
       final serverVersionCode = latest['versionCode'] as int? ?? 1;
