@@ -41,6 +41,7 @@ router.post("/upload", upload.single("file"), (req, res) => {
 
 router.post("/", CourseController.create);
 router.put("/:id", CourseController.update);
+router.put("/instructor/:instructorId", CourseController.updateInstructorInfo);
 router.post("/:id/materials", CourseController.addMaterial);
 router.patch("/:id/view", CourseController.incrementViews);
 router.delete("/all-courses", CourseController.deleteAll);

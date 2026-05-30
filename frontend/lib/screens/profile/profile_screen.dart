@@ -5,6 +5,7 @@ import '../../services/session_service.dart';
 import '../../services/api_service.dart';
 import '../../utils/url_helper.dart';
 import 'edit_profile_screen.dart';
+import 'help_center_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -72,6 +73,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showLogoutReviewDialog() {
+    int rating = 5;
+    final commentController = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateSB) {
+          return AlertDialog(
+            title: const Text("Rate SkillSwap Pro"),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Before you leave, please let us know how we can improve!"),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      return IconButton(
+                        icon: Icon(
+                          index < rating ? Icons.star : Icons.star_border,
+                          color: AppTheme.accentYellow,
+                          size: 32,
+                        ),
+                        onPressed: isSubmitting
+                            ? null
+                            : () => setStateSB(() => rating = index + 1),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: commentController,
+                    maxLines: 3,
+                    enabled: !isSubmitting,
+                    decoration: const InputDecoration(
+                      hintText: "What features should be added or improved?",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  if (isSubmitting) ...[
+                    const SizedBox(height: 16),
+                    const CircularProgressIndicator(),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                      },
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                        SessionService().clearSession();
+                        Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+                      },
+                child: const Text("Skip & Log Out"),
+              ),
+              ElevatedButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        setStateSB(() => isSubmitting = true);
+                        try {
+                          final userId = SessionService().userId ?? "anonymous";
+                          await ApiService.submitAppReview(
+                            userId: userId,
+                            rating: rating,
+                            comment: commentController.text.trim(),
+                          );
+                        } catch (e) {
+                          debugPrint("Feedback upload failed: $e");
+                        }
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          SessionService().clearSession();
+                          Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+                        }
+                      },
+                child: const Text("Submit & Log Out"),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -177,11 +277,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildProfileOption(context, Icons.payment, "Payment Methods", subtitle: "MTN / Orange Money"),
                   _buildProfileOption(context, Icons.notifications_outlined, "Notifications"),
                   _buildProfileOption(context, Icons.history, "Transaction History"),
-                  _buildProfileOption(context, Icons.help_outline, "Help Center"),
+                  _buildProfileOption(context, Icons.help_outline, "Help Center", onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpCenterScreen()));
+                  }),
                   const SizedBox(height: 24),
                   _buildProfileOption(context, Icons.logout, "Log Out", isDestructive: true, onTap: () {
-                    SessionService().clearSession();
-                    Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+                    _showLogoutReviewDialog();
                   }),
                   const SizedBox(height: 32),
                 ],

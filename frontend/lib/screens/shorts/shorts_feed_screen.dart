@@ -497,7 +497,15 @@ class _VideoFeedItemState extends State<VideoFeedItem> {
       fit: StackFit.expand,
       children: [
         GestureDetector(
-          onTap: () => _controller.value.isPlaying ? _controller.pause() : _controller.play(),
+          onTap: () {
+            setState(() {
+              if (_controller.value.isPlaying) {
+                _controller.pause();
+              } else {
+                _controller.play();
+              }
+            });
+          },
           onDoubleTap: _onDoubleTap,
           child: _isError 
               ? Container(color: Colors.black, child: const Center(child: Icon(Icons.error_outline, color: Colors.white, size: 40)))

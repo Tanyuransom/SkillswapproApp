@@ -165,6 +165,33 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> submitAppReview({
+    required String userId,
+    required int rating,
+    required String comment,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/app-reviews'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'rating': rating,
+          'comment': comment,
+        }),
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body)['error'] ?? 'Feedback submission failed';
+        throw Exception(error);
+      }
+    } catch (e) {
+      throw Exception('Feedback submission error: ${e.toString()}');
+    }
+  }
+
   static Future<List<dynamic>> getUsersBatch(List<String> ids) async {
     try {
       final response = await http.post(
@@ -408,12 +435,28 @@ class ApiService {
 
   // --- ENROLLMENTS (Enrollment Service) ---
 
-  static Future<Map<String, dynamic>> enrollCourse({required String courseId, required String studentId}) async {
+  static Future<Map<String, dynamic>> enrollCourse({
+    required String courseId,
+    required String studentId,
+    String? instructorId,
+    String? studentName,
+    String? courseTitle,
+    String? instructorName,
+    String? instructorAvatar,
+  }) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/enrollments'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({ 'courseId': courseId, 'studentId': studentId }),
+        body: jsonEncode({
+          'courseId': courseId,
+          'studentId': studentId,
+          if (instructorId != null) 'instructorId': instructorId,
+          if (studentName != null) 'studentName': studentName,
+          if (courseTitle != null) 'courseTitle': courseTitle,
+          if (instructorName != null) 'instructorName': instructorName,
+          if (instructorAvatar != null) 'instructorAvatar': instructorAvatar,
+        }),
       ).timeout(timeoutDuration);
 
       if (response.statusCode == 201) return jsonDecode(response.body);

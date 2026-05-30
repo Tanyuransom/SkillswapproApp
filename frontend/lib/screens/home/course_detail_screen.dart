@@ -238,7 +238,24 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  const Text("Instructor", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Instructor", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      GestureDetector(
+                        onTap: _showAvailableTutors,
+                        child: const Text(
+                          "See available tutors",
+                          style: TextStyle(
+                            color: AppTheme.primaryPurple,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 12),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -359,10 +376,17 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
               _showAddMaterialDialog();
             } else if (_isEnrolled) {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("You are already enrolled! Scroll up to view modules.")));
-            } else {
               // Enroll
               try {
-                await ApiService.enrollCourse(courseId: course['id'] ?? '', studentId: userId);
+                await ApiService.enrollCourse(
+                  courseId: course['id'] ?? '',
+                  studentId: userId,
+                  instructorId: course['instructorId'],
+                  studentName: SessionService().fullName,
+                  courseTitle: course['title'],
+                  instructorName: _instructorName,
+                  instructorAvatar: _instructorAvatar,
+                );
                 if (context.mounted) {
                   setState(() {
                     _isEnrolled = true;
@@ -588,6 +612,210 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showAvailableTutors() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _AvailableTutorsSheet(
+        courseTitle: widget.course['title'] ?? '',
+        currentCourseId: widget.course['id'] ?? '',
+      ),
+    );
+  }
+}
+
+class _AvailableTutorsSheet extends StatefulWidget {
+  final String courseTitle;
+  final String currentCourseId;
+
+  const _AvailableTutorsSheet({
+    required this.courseTitle,
+    required this.currentCourseId,
+  });
+
+  @override
+  State<_AvailableTutorsSheet> createState() => _AvailableTutorsSheetState();
+}
+
+class _AvailableTutorsSheetState extends State<_AvailableTutorsSheet> {
+  List<dynamic> _tutorCourses = [];
+  bool _isLoading = true;
+  String? _expandedCourseId;
+  List<dynamic> _expandedReviews = [];
+  bool _isLoadingReviews = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTutors();
+  }
+
+  Future<void> _fetchTutors() async {
+    try {
+      final courses = await ApiService.getCourses(query: widget.courseTitle);
+      if (mounted) {
+        setState(() {
+          _tutorCourses = courses.where((c) => 
+            (c['title'] ?? '').toString().toLowerCase() == widget.courseTitle.toLowerCase()
+          ).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _fetchReviewsForCourse(String courseId) async {
+    setState(() {
+      _expandedCourseId = courseId;
+      _isLoadingReviews = true;
+      _expandedReviews = [];
+    });
+    try {
+      final reviews = await ApiService.getCourseReviews(courseId);
+      if (mounted && _expandedCourseId == courseId) {
+        setState(() {
+          _expandedReviews = reviews;
+          _isLoadingReviews = false;
+        });
+      }
+    } catch (e) {
+      if (mounted && _expandedCourseId == courseId) {
+        setState(() => _isLoadingReviews = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(color: Colors.grey, borderRadius: BorderRadius.circular(2)),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Available Tutors",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _tutorCourses.isEmpty
+                    ? const Center(child: Text("No other tutors found for this course", style: TextStyle(color: Colors.grey)))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _tutorCourses.length,
+                        itemBuilder: (context, index) {
+                          final c = _tutorCourses[index];
+                          final instructorName = c['instructorName'] ?? 'Tutor';
+                          final avatarUrl = c['instructorAvatarUrl'];
+                          final rating = (double.tryParse(c['averageRating']?.toString() ?? '0.0') ?? 0.0).toStringAsFixed(1);
+                          final reviewsCount = c['reviewCount'] ?? 0;
+                          final isExpanded = _expandedCourseId == c['id'];
+
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            child: ExpansionTile(
+                              key: PageStorageKey(c['id']),
+                              initiallyExpanded: isExpanded,
+                              onExpansionChanged: (expanded) {
+                                if (expanded) {
+                                  _fetchReviewsForCourse(c['id']);
+                                } else {
+                                  if (_expandedCourseId == c['id']) {
+                                    setState(() => _expandedCourseId = null);
+                                  }
+                                }
+                              },
+                              leading: CircleAvatar(
+                                backgroundImage: (avatarUrl != null && avatarUrl.toString().isNotEmpty)
+                                    ? NetworkImage(UrlHelper.fixIp(avatarUrl)) as ImageProvider
+                                    : const AssetImage('assets/images/tutor.png'),
+                              ),
+                              title: Text(instructorName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Row(
+                                children: [
+                                  const Icon(Icons.star, color: AppTheme.accentYellow, size: 16),
+                                  Text(" $rating ($reviewsCount reviews)", style: const TextStyle(fontSize: 12)),
+                                  const SizedBox(width: 12),
+                                  Text("${c['price'] ?? 0}fr", style: const TextStyle(color: AppTheme.secondaryOrange, fontWeight: FontWeight.bold, fontSize: 12)),
+                                ],
+                              ),
+                              children: [
+                                const Divider(height: 1),
+                                if (_isLoadingReviews && isExpanded)
+                                  const Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Center(child: CircularProgressIndicator()),
+                                  )
+                                else if (isExpanded && _expandedReviews.isEmpty)
+                                  const Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Text("No student reviews for this tutor yet.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                                  )
+                                else if (isExpanded)
+                                  ListView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    itemCount: _expandedReviews.length,
+                                    itemBuilder: (context, rIndex) {
+                                      final r = _expandedReviews[rIndex];
+                                      return ListTile(
+                                        dense: true,
+                                        leading: CircleAvatar(
+                                          radius: 14,
+                                          child: Text((r['userName'] as String?)?.substring(0, 1) ?? 'U', style: const TextStyle(fontSize: 10)),
+                                        ),
+                                        title: Row(
+                                          children: [
+                                            Text(r['userName'] ?? 'User', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                            const SizedBox(width: 8),
+                                            const Icon(Icons.star, size: 12, color: AppTheme.accentYellow),
+                                            Text(" ${r['rating']}", style: const TextStyle(fontSize: 11)),
+                                          ],
+                                        ),
+                                        subtitle: Text(r['comment'] ?? '', style: const TextStyle(fontSize: 12)),
+                                      );
+                                    },
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
       ),
     );
   }

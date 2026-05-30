@@ -6,7 +6,7 @@ import axios from "axios";
 export class EnrollmentController {
   static async enrollCourse(req: Request, res: Response) {
     try {
-      const { studentId, courseId, instructorId, studentName, courseTitle } = req.body;
+      const { studentId, courseId, instructorId, studentName, courseTitle, instructorName, instructorAvatar } = req.body;
       const enrollmentRepository = AppDataSource.getRepository(Enrollment);
       
       const existing = await enrollmentRepository.findOneBy({ studentId, courseId });
@@ -32,6 +32,20 @@ export class EnrollmentController {
         });
       } catch (notifyError) {
         console.error("Failed to trigger notification:", notifyError);
+      }
+
+      // Trigger Welcome Inbox Message to Student
+      try {
+        await axios.post("http://messaging-service:3006/", {
+          senderId: instructorId || "system",
+          receiverId: studentId,
+          content: `Welcome to the course "${courseTitle || 'Course'}"! I am excited to have you in this course. Feel free to ask any questions here.`,
+          senderName: instructorName || "Instructor",
+          senderAvatarUrl: instructorAvatar || "",
+          senderRole: "TUTOR"
+        });
+      } catch (welcomeError: any) {
+        console.error("Failed to send welcome message:", welcomeError.message);
       }
 
       res.status(201).json(enrollment);

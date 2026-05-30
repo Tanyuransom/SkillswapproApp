@@ -152,4 +152,25 @@ export class ShortController {
       res.status(500).json({ error: "Failed to delete all shorts" });
     }
   }
+
+  static async updateTutorInfo(req: Request, res: Response) {
+    try {
+      const { tutorId } = req.params;
+      const { fullName, avatarUrl } = req.body;
+      const shortRepository = AppDataSource.getRepository(Short);
+
+      const updateData: any = {};
+      if (fullName !== undefined) updateData.tutorName = fullName;
+      if (avatarUrl !== undefined) updateData.tutorAvatarUrl = avatarUrl;
+
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "No fields to update" });
+      }
+
+      await shortRepository.update({ tutorId }, updateData);
+      res.json({ success: true, message: "Tutor info updated across all shorts" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to update tutor info" });
+    }
+  }
 }

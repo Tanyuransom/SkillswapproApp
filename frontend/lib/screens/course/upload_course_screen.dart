@@ -25,10 +25,22 @@ class _UploadCourseScreenState extends State<UploadCourseScreen> {
   final List<Map<String, dynamic>> _materials = []; // { 'title': '', 'path': '', 'type': '' }
   bool _isLoading = false;
   bool _isManuallyEnteringCategory = false;
+  bool _isManuallyEnteringSpecialty = false;
   int _selectedLevel = 1;
   String? _selectedSpecialty;
   final List<String> _specialties = ['ICT', 'ISN', 'CS', 'SEN', 'CYS'];
   final ImagePicker _picker = ImagePicker();
+  final _newSpecialtyController = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _priceController.dispose();
+    _newCategoryController.dispose();
+    _newSpecialtyController.dispose();
+    super.dispose();
+  }
   final session = SessionService();
 
   @override
@@ -137,7 +149,7 @@ class _UploadCourseScreenState extends State<UploadCourseScreen> {
         categoryId: catId,
         imageUrl: imageUrl,
         level: _selectedLevel,
-        specialty: _selectedSpecialty,
+        specialty: _isManuallyEnteringSpecialty ? _newSpecialtyController.text.trim() : _selectedSpecialty,
         instructorName: session.fullName ?? 'Tutor',
         instructorAvatarUrl: session.avatarUrl,
       );
@@ -289,18 +301,32 @@ class _UploadCourseScreenState extends State<UploadCourseScreen> {
               onChanged: (val) => setState(() => _selectedLevel = val ?? 1),
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedSpecialty,
-              decoration: const InputDecoration(
-                labelText: 'Specialty (Optional for Level 1/2)',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.school),
+            if (!_isManuallyEnteringSpecialty)
+              DropdownButtonFormField<String>(
+                initialValue: _selectedSpecialty,
+                decoration: const InputDecoration(
+                  labelText: 'Specialty (Optional for Level 1/2)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.school),
+                ),
+                items: _specialties.map((s) => DropdownMenuItem(
+                  value: s,
+                  child: Text(s),
+                )).toList(),
+                onChanged: (val) => setState(() => _selectedSpecialty = val),
+              )
+            else
+              TextField(
+                controller: _newSpecialtyController,
+                decoration: const InputDecoration(
+                  labelText: 'Enter Custom Specialty (e.g. Ren)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.add_box_outlined),
+                ),
               ),
-              items: _specialties.map((s) => DropdownMenuItem(
-                value: s,
-                child: Text(s),
-              )).toList(),
-              onChanged: (val) => setState(() => _selectedSpecialty = val),
+            TextButton(
+              onPressed: () => setState(() => _isManuallyEnteringSpecialty = !_isManuallyEnteringSpecialty),
+              child: Text(_isManuallyEnteringSpecialty ? "Select Standard Specialty" : "Manual Specialty Input? (e.g. new specialty)", style: const TextStyle(fontSize: 12)),
             ),
             const SizedBox(height: 32),
             const Text("Course Materials", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),

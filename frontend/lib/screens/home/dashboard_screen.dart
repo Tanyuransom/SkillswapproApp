@@ -13,7 +13,8 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final VoidCallback? onNavigateToInbox;
+  const DashboardScreen({super.key, this.onNavigateToInbox});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -71,11 +72,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _fetchTrending() async {
     try {
-      final courses = await ApiService.getTrendingCourses(level: _selectedLevel, specialty: _selectedSpecialty);
+      final isOthers = _selectedSpecialty == 'Others';
+      final courses = await ApiService.getTrendingCourses(
+        level: _selectedLevel,
+        specialty: isOthers ? null : _selectedSpecialty,
+      );
       if (mounted) {
         setState(() {
-          _trendingCourses = courses;
-          _filteredCourses = courses;
+          if (isOthers) {
+            _trendingCourses = courses.where((c) {
+              final spec = c['specialty']?.toString().toUpperCase() ?? '';
+              return !_specialties.contains(spec) && spec.isNotEmpty;
+            }).toList();
+          } else {
+            _trendingCourses = courses;
+          }
+          _filteredCourses = _trendingCourses;
           _isLoading = false;
         });
       }
@@ -100,7 +112,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // Debounce or immediate search
     try {
-      final results = await ApiService.getCourses(query: query, level: _selectedLevel, specialty: _selectedSpecialty);
+      final results = await ApiService.getCourses(query: query);
       if (mounted && _searchQuery == query) {
         setState(() {
           _filteredCourses = results;
@@ -122,10 +134,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _fetchShorts() async {
     try {
-      final shorts = await ApiService.getShorts(level: _selectedLevel, specialty: _selectedSpecialty);
+      final isOthers = _selectedSpecialty == 'Others';
+      final shorts = await ApiService.getShorts(
+        level: _selectedLevel,
+        specialty: isOthers ? null : _selectedSpecialty,
+      );
       if (mounted) {
         setState(() {
-          _shorts = shorts;
+          if (isOthers) {
+            _shorts = shorts.where((s) {
+              final spec = s['specialty']?.toString().toUpperCase() ?? '';
+              return !_specialties.contains(spec) && spec.isNotEmpty;
+            }).toList();
+          } else {
+            _shorts = shorts;
+          }
           _isLoadingShorts = false;
         });
       }
@@ -155,23 +178,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
             tooltip: 'Refresh Content',
           ),
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: () => Navigator.pushNamed(context, '/notifications').then((_) => _fetchNotifications()),
-              ),
-              if (_notifications.any((n) => !(n['isRead'] ?? false)))
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: AppTheme.secondaryOrange, shape: BoxShape.circle),
-                    constraints: const BoxConstraints(minWidth: 8, minHeight: 8),
+          Builder(
+            builder: (context) {
+              final unreadCount = _notifications.where((n) => !(n['isRead'] ?? false)).length;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () {
+                      if (widget.onNavigateToInbox != null) {
+                        widget.onNavigateToInbox!();
+                      } else {
+                        Navigator.pushNamed(context, '/notifications').then((_) => _fetchNotifications());
+                      }
+                    },
                   ),
-                ),
-            ],
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 4,
+                      top: 4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: AppTheme.errorRed,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Center(
+                          child: Text(
+                            unreadCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            }
           ),
           const SizedBox(width: 8),
         ],
@@ -301,13 +352,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: _specialties.map((specialty) {
-                    final isSelected = _selectedSpecialty == specialty;
-                    return GestureDetector(
+                  children: [
+                    ..._specialties.map((specialty) {
+                      final isSelected = _selectedSpecialty == specialty;
+                      return GestureDetector(
+                        onTap: () async {
+                          await session.updateAcademicPreferences(_selectedLevel, specialty);
+                          setState(() {
+                            _selectedSpecialty = specialty;
+                            _isLoading = true;
+                            _isLoadingShorts = true;
+                          });
+                          _fetchTrending();
+                          _fetchShorts();
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppTheme.secondaryOrange : AppTheme.secondaryOrange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.secondaryOrange.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            specialty,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : AppTheme.secondaryOrange,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    GestureDetector(
                       onTap: () async {
-                        await session.updateAcademicPreferences(_selectedLevel, specialty);
+                        await session.updateAcademicPreferences(_selectedLevel, 'Others');
                         setState(() {
-                          _selectedSpecialty = specialty;
+                          _selectedSpecialty = 'Others';
                           _isLoading = true;
                           _isLoadingShorts = true;
                         });
@@ -318,20 +399,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         margin: const EdgeInsets.only(right: 12),
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppTheme.secondaryOrange : AppTheme.secondaryOrange.withValues(alpha: 0.1),
+                          color: _selectedSpecialty == 'Others' ? AppTheme.secondaryOrange : AppTheme.secondaryOrange.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppTheme.secondaryOrange.withValues(alpha: 0.3)),
                         ),
                         child: Text(
-                          specialty,
+                          "Others",
                           style: TextStyle(
-                            color: isSelected ? Colors.white : AppTheme.secondaryOrange,
+                            color: _selectedSpecialty == 'Others' ? Colors.white : AppTheme.secondaryOrange,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ],
                 ),
               ),
 
@@ -408,7 +489,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       itemBuilder: (_, _) => _buildShimmerCourseCard(context),
                     )
                   : _filteredCourses.isEmpty 
-                    ? const Center(child: Text("no matching courses", style: TextStyle(color: Colors.grey)))
+                    ? _buildNotFoundView(context, "No courses found matching '$_searchQuery'")
                     : ListView.builder(
                         scrollDirection: Axis.horizontal,
                         itemCount: _filteredCourses.length,
@@ -737,6 +818,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
         ),
+      ),
+    );
+  }
+
+  Widget _buildNotFoundView(BuildContext context, String message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            size: 48,
+            color: isDark ? Colors.white30 : Colors.grey.shade400,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "Not Found",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimaryLight,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondaryLight,
+            ),
+          ),
+        ],
       ),
     );
   }

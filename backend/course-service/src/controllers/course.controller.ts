@@ -311,4 +311,25 @@ export class CourseController {
       res.status(500).json({ error: "Failed to update course" });
     }
   }
+
+  static async updateInstructorInfo(req: Request, res: Response) {
+    try {
+      const { instructorId } = req.params;
+      const { fullName, avatarUrl } = req.body;
+      const courseRepository = AppDataSource.getRepository(Course);
+
+      const updateData: any = {};
+      if (fullName !== undefined) updateData.instructorName = fullName;
+      if (avatarUrl !== undefined) updateData.instructorAvatarUrl = avatarUrl;
+
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "No fields to update" });
+      }
+
+      await courseRepository.update({ instructorId }, updateData);
+      res.json({ success: true, message: "Instructor info updated across all courses" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to update instructor info" });
+    }
+  }
 }

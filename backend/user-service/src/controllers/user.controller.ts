@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { UserService } from "../services/user.service";
 import { AppDataSource } from "../data-source";
 import { Follow } from "../entities/Follow";
+import axios from "axios";
 
 export class UserController {
   static async followTutor(req: Request, res: Response) {
@@ -85,6 +86,16 @@ export class UserController {
     try {
       const { id } = req.params;
       const user = await UserService.updateUser(id, req.body);
+      
+      const { fullName, avatarUrl } = req.body;
+      if (fullName !== undefined || avatarUrl !== undefined) {
+        // Asynchronously propagate profile updates to other services
+        axios.put(`http://course-service:3002/instructor/${id}`, { fullName, avatarUrl })
+          .catch(err => console.error("Failed to propagate profile updates to course-service:", err.message));
+        axios.put(`http://shorts-service:3005/tutor/${id}`, { fullName, avatarUrl })
+          .catch(err => console.error("Failed to propagate profile updates to shorts-service:", err.message));
+      }
+
       res.status(200).json(user);
     } catch (err: any) {
       res.status(400).json({ error: err.message });
@@ -126,6 +137,45 @@ export class UserController {
       res.status(200).json(result);
     } catch (err: any) {
       res.status(400).json({ error: err.message });
+    }
+  }
+
+  static async addAppReview(req: Request, res: Response) {
+    try {
+      const { userId, rating, comment } = req.body;
+      if (!rating) {
+        return res.status(400).json({ error: "Rating is required" });
+      }
+
+      const path = require("path");
+      const fs = require("fs");
+      const feedbackDir = path.join(__dirname, "../../uploads");
+      if (!fs.existsSync(feedbackDir)) {
+        fs.mkdirSync(feedbackDir, { recursive: true });
+      }
+      const feedbackPath = path.join(feedbackDir, "feedback.json");
+
+      let reviews: any[] = [];
+      if (fs.existsSync(feedbackPath)) {
+        try {
+          const content = fs.readFileSync(feedbackPath, "utf-8");
+          reviews = JSON.parse(content);
+        } catch (e) {
+          console.error("Error reading feedback.json", e);
+        }
+      }
+
+      reviews.push({
+        userId: userId || "anonymous",
+        rating,
+        comment: comment || "",
+        createdAt: new Date()
+      });
+
+      fs.writeFileSync(feedbackPath, JSON.stringify(reviews, null, 2), "utf-8");
+      res.status(201).json({ success: true, message: "Feedback submitted successfully" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to save feedback" });
     }
   }
 }

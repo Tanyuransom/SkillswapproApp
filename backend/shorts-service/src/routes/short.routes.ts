@@ -28,6 +28,7 @@ const upload = multer({
 
 router.get("/", ShortController.getAll);
 router.post("/", ShortController.create);
+router.put("/tutor/:tutorId", ShortController.updateTutorInfo);
 router.delete("/all-shorts", ShortController.deleteAll);
 router.delete("/:id", ShortController.delete);
 router.post("/upload", upload.single("video"), (req, res) => {

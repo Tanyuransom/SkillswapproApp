@@ -322,30 +322,16 @@ class _UploadShortScreenState extends State<UploadShortScreen> {
 
               const SizedBox(height: 12),
 
-              // ── Specialty ─────────────────────────────────────────────
-              DropdownButtonFormField<String>(
-                initialValue: _selectedSpecialty,
+              // ── Specialty (Locked to Tutor Profile) ───────────────────
+              TextFormField(
+                initialValue: _selectedSpecialty ?? 'SEN',
                 decoration: const InputDecoration(
-                  labelText: 'Specialty',
+                  labelText: 'Specialty (Locked to your profile)',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.school),
                 ),
-                items: [
-                  const DropdownMenuItem<String>(
-                      value: null, child: Text('All Specialties')),
-                  ..._specialties
-                      .map((s) => DropdownMenuItem(value: s, child: Text(s))),
-                ],
-                onChanged: _isUploading
-                    ? null
-                    : (val) {
-                        setState(() {
-                          _selectedSpecialty = val;
-                          _selectedCourseId = null;
-                          _courseNameController.clear();
-                        });
-                        _fetchCoursesForShort();
-                      },
+                readOnly: true,
+                enabled: false,
               ),
 
               const SizedBox(height: 12),

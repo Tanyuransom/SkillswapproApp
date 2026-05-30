@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../theme/app_theme.dart';
 import '../../services/session_service.dart';
 import '../../services/api_service.dart';
+import '../../utils/url_helper.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -14,12 +16,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _nameController = TextEditingController();
   final _specController = TextEditingController();
   bool _isLoading = false;
+  final ImagePicker _picker = ImagePicker();
+  String? _avatarUrl;
 
   @override
   void initState() {
     super.initState();
     final session = SessionService();
     _nameController.text = session.fullName ?? "";
+    _avatarUrl = session.avatarUrl;
     _fetchCurrentProfile();
   }
 
@@ -32,9 +37,57 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         setState(() {
           _nameController.text = user['fullName'] ?? "";
           _specController.text = user['specialization'] ?? "";
+          _avatarUrl = user['avatarUrl'];
         });
       }
     } catch (e) { /* silent */ }
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final userId = SessionService().userId;
+      if (userId == null) return;
+
+      final String secureUrl = await ApiService.uploadAvatar(image.path);
+      
+      await ApiService.updateUser(
+        id: userId,
+        fullName: _nameController.text.trim(),
+        avatarUrl: secureUrl,
+      );
+
+      setState(() {
+        _avatarUrl = secureUrl;
+      });
+
+      final session = SessionService();
+      await session.saveSession(
+        userId: session.userId!,
+        fullName: _nameController.text.trim(),
+        token: session.token!,
+        role: session.currentRole,
+        avatarUrl: secureUrl,
+        specialization: session.isTutor ? _specController.text.trim() : null,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profile Picture Updated!"), backgroundColor: AppTheme.successGreen),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Upload Error: $e"), backgroundColor: AppTheme.errorRed),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _saveProfile() async {
@@ -99,12 +152,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 20),
-            Center(
+            GestureDetector(
+              onTap: _pickAndUploadImage,
               child: Stack(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 60,
-                    backgroundImage: AssetImage('assets/images/tutor.png'),
+                    backgroundImage: (_avatarUrl != null && _avatarUrl!.startsWith('http'))
+                        ? NetworkImage(UrlHelper.fixIp(_avatarUrl!))
+                        : const AssetImage('assets/images/tutor.png') as ImageProvider,
                   ),
                   Positioned(
                     bottom: 0,

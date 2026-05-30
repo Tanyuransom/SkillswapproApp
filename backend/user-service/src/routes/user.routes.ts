@@ -33,6 +33,7 @@ router.get("/follow/check", UserController.checkFollowStatus);
 router.get("/followers/:tutorId", UserController.getFollowers);
 router.get("/:id", UserController.getUser);
 router.delete("/:id", UserController.deleteUser);
+router.post("/app-reviews", UserController.addAppReview);
 
 // Avatar upload endpoint (Moved from Identity to User service)
 router.post("/avatar", (req, res, next) => {

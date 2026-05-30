@@ -21,7 +21,11 @@ class _MainShellState extends State<MainShell> {
   List<Widget> _getScreens() {
     final session = SessionService();
     return [
-      const DashboardScreen(),
+      DashboardScreen(onNavigateToInbox: () {
+        setState(() {
+          _currentIndex = session.isTutor ? 4 : 3;
+        });
+      }),
       const DiscoveryScreen(),
       const ShortsFeedScreen(),
       if (session.isTutor) const TutorDashboard(),
