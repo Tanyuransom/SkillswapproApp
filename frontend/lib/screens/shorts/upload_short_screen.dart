@@ -29,6 +29,7 @@ class _UploadShortScreenState extends State<UploadShortScreen> {
   List<dynamic> _coursesForLevelAndSpecialty = [];
   String? _selectedCourseId;
   bool _isLoadingCourses = false;
+  bool _showAllCourses = false;
 
   @override
   void initState() {
@@ -45,7 +46,7 @@ class _UploadShortScreenState extends State<UploadShortScreen> {
     try {
       final courses = await ApiService.getCourses(
         level: _selectedLevel,
-        specialty: _selectedSpecialty,
+        specialty: _showAllCourses ? null : _selectedSpecialty,
       );
       if (mounted) {
         setState(() {
@@ -337,48 +338,82 @@ class _UploadShortScreenState extends State<UploadShortScreen> {
               const SizedBox(height: 12),
 
               // ── Target Course (filtered by level + specialty) ──────────
-              if (_isLoadingCourses)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedCourseId,
-                  decoration: InputDecoration(
-                    labelText: _coursesForLevelAndSpecialty.isEmpty
-                        ? 'No courses for selected filters'
-                        : 'Target Course (${_coursesForLevelAndSpecialty.length})',
-                    border: const OutlineInputBorder(),
-                    prefixIcon: const Icon(Icons.book),
-                  ),
-                  items: _coursesForLevelAndSpecialty.map((c) {
-                    final t = (c['title'] ?? '') as String;
-                    return DropdownMenuItem<String>(
-                      value: c['id'] as String,
-                      child: Text(
-                        t.length > 38 ? '${t.substring(0, 35)}...' : t,
-                        overflow: TextOverflow.ellipsis,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_isLoadingCourses)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        child: CircularProgressIndicator(),
                       ),
-                    );
-                  }).toList(),
-                  onChanged: _coursesForLevelAndSpecialty.isEmpty || _isUploading
-                      ? null
-                      : (val) {
-                          if (val == null) return;
-                          setState(() {
-                            _selectedCourseId = val;
-                            final sc = _coursesForLevelAndSpecialty
-                                .firstWhere((c) => c['id'] == val);
-                            _courseNameController.text = sc['title'] ?? '';
-                            if (sc['categoryId'] != null) {
-                              _selectedCategoryId = sc['categoryId'];
-                            }
-                          });
+                    )
+                  else
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedCourseId,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: _showAllCourses
+                            ? 'All Courses (${_coursesForLevelAndSpecialty.length})'
+                            : _coursesForLevelAndSpecialty.isEmpty
+                                ? 'No recommended courses found'
+                                : 'Recommended Courses (${_coursesForLevelAndSpecialty.length})',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.book),
+                      ),
+                      items: _coursesForLevelAndSpecialty.map((c) {
+                        final t = (c['title'] ?? '') as String;
+                        return DropdownMenuItem<String>(
+                          value: c['id'] as String,
+                          child: Text(
+                            t,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: _coursesForLevelAndSpecialty.isEmpty || _isUploading
+                          ? null
+                          : (val) {
+                              if (val == null) return;
+                              setState(() {
+                                _selectedCourseId = val;
+                                final sc = _coursesForLevelAndSpecialty
+                                    .firstWhere((c) => c['id'] == val);
+                                _courseNameController.text = sc['title'] ?? '';
+                                if (sc['categoryId'] != null) {
+                                  _selectedCategoryId = sc['categoryId'];
+                                }
+                              });
+                            },
+                    ),
+                  if (!_isUploading)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          setState(() => _showAllCourses = !_showAllCourses);
+                          _fetchCoursesForShort();
                         },
-                ),
+                        icon: Icon(
+                          _showAllCourses ? Icons.star : Icons.star_border,
+                          size: 16,
+                          color: AppTheme.primaryPurple,
+                        ),
+                        label: Text(
+                          _showAllCourses
+                              ? 'Show Recommended Courses Only'
+                              : 'Other Courses',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.primaryPurple,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
 
               const SizedBox(height: 12),
 

@@ -73,8 +73,11 @@ const proxyOptions = {
   limit: '500mb',
   parseReqBody: false, // Transparently pipe the raw stream
   proxyReqPathResolver: (req) => {
-    const resolvedPath = req.originalUrl.replace(/^\/api\/[^\/]+/, '') || '/';
-    const finalPath = resolvedPath.startsWith('?') ? '/' + resolvedPath : resolvedPath;
+    const parts = req.originalUrl.split('?');
+    const pathPart = parts[0];
+    const queryPart = parts[1] ? '?' + parts[1] : '';
+    const resolvedPath = pathPart.replace(/^\/api\/[^\/]+/, '') || '/';
+    const finalPath = resolvedPath + queryPart;
     console.log(`[Gateway] Proxying ${req.method} ${req.originalUrl} -> ${finalPath}`);
     return finalPath;
   }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:async';
 import '../shorts/shorts_feed_screen.dart';
 import 'package:skill_swap_pro/services/api_service.dart';
 import '../../theme/app_theme.dart';
@@ -6,6 +8,7 @@ import '../../services/session_service.dart';
 import '../../utils/url_helper.dart';
 import '../category/category_screen.dart';
 import '../category/all_categories_screen.dart';
+import '../profile/help_center_screen.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
@@ -32,6 +35,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _selectedSpecialty;
   List<dynamic> _categories = [];
   final session = SessionService();
+  int _prevUnreadCount = 0;
+  Timer? _debounceTimer;
 
   final List<String> _specialties = ['ICT', 'ISN', 'CS', 'SEN', 'CYS'];
 
@@ -65,7 +70,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       if (session.userId != null) {
         final data = await ApiService.getNotifications(session.userId!);
-        if (mounted) setState(() => _notifications = data);
+        if (mounted) {
+          final newUnread = data.where((n) => !(n['isRead'] ?? false)).length;
+          if (newUnread > _prevUnreadCount && _prevUnreadCount >= 0) {
+            SystemSound.play(SystemSoundType.alert);
+            HapticFeedback.mediumImpact();
+          }
+          _prevUnreadCount = newUnread;
+          setState(() => _notifications = data);
+        }
       }
     } catch (e) { /* silent */ }
   }
@@ -77,15 +90,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         level: _selectedLevel,
         specialty: isOthers ? null : _selectedSpecialty,
       );
+      
+      List<dynamic> allCourses = List.from(courses);
+      final addedIds = session.addedCourseIds;
+      for (var id in addedIds) {
+        if (allCourses.any((c) => c['id'] == id)) continue;
+        try {
+          final c = await ApiService.getCourseById(id);
+          if (c != null) allCourses.add(c);
+        } catch (_) {}
+      }
+
       if (mounted) {
         setState(() {
           if (isOthers) {
-            _trendingCourses = courses.where((c) {
+            _trendingCourses = allCourses.where((c) {
               final spec = c['specialty']?.toString().toUpperCase() ?? '';
               return !_specialties.contains(spec) && spec.isNotEmpty;
             }).toList();
           } else {
-            _trendingCourses = courses;
+            _trendingCourses = allCourses;
           }
           _filteredCourses = _trendingCourses;
           _isLoading = false;
@@ -97,39 +121,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _onSearch(String query) async {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
     setState(() {
       _searchQuery = query;
       _isLoading = query.isNotEmpty; // Show shimmer during search
     });
     
-    if (query.isEmpty) {
-      setState(() {
-        _filteredCourses = _trendingCourses;
-        _isLoading = false;
-      });
-      return;
-    }
-
-    // Debounce or immediate search
-    try {
-      final results = await ApiService.getCourses(query: query);
-      if (mounted && _searchQuery == query) {
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      if (query.isEmpty) {
         setState(() {
-          _filteredCourses = results;
+          _filteredCourses = _trendingCourses;
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Debounce or immediate search
+      try {
+        final results = await ApiService.getCourses(query: query);
+        if (mounted && _searchQuery == query) {
+          setState(() {
+            _filteredCourses = results;
+            _isLoading = false;
+          });
+        }
+      } catch (e) {
+        // Fallback to local filter if API fails
+        setState(() {
+          _filteredCourses = _trendingCourses.where((c) {
+            final title = (c['title'] ?? "").toLowerCase();
+            final desc = (c['description'] ?? "").toLowerCase();
+            return title.contains(query.toLowerCase()) || desc.contains(query.toLowerCase());
+          }).toList();
           _isLoading = false;
         });
       }
-    } catch (e) {
-      // Fallback to local filter if API fails
-      setState(() {
-        _filteredCourses = _trendingCourses.where((c) {
-          final title = (c['title'] ?? "").toLowerCase();
-          final desc = (c['description'] ?? "").toLowerCase();
-          return title.contains(query.toLowerCase()) || desc.contains(query.toLowerCase());
-        }).toList();
-        _isLoading = false;
-      });
-    }
+    });
   }
 
   void _fetchShorts() async {
@@ -488,24 +515,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       itemCount: 3,
                       itemBuilder: (_, _) => _buildShimmerCourseCard(context),
                     )
-                  : _filteredCourses.isEmpty 
-                    ? _buildNotFoundView(context, "No courses found matching '$_searchQuery'")
+                  : _filteredCourses.where((c) => c['instructorId'] != 'system-seed' && c['instructorId'] != null && c['instructorId'] != '').isEmpty 
+                    ? _buildNotFoundView(context, "No active courses found")
                     : ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        itemCount: _filteredCourses.length,
+                        itemCount: _filteredCourses.where((c) => c['instructorId'] != 'system-seed' && c['instructorId'] != null && c['instructorId'] != '').length,
                         itemBuilder: (context, index) {
-                          final course = _filteredCourses[index];
+                          final activeCourses = _filteredCourses.where((c) => c['instructorId'] != 'system-seed' && c['instructorId'] != null && c['instructorId'] != '').toList();
+                          final course = activeCourses[index];
                           return _buildCourseCard(context, course)
                               .animate().fadeIn(delay: (100 * index).ms).slideY(begin: 0.2);
                         },
                       ),
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 32),
+              
+              if (_filteredCourses.any((c) => c['instructorId'] == 'system-seed' || c['instructorId'] == null || c['instructorId'] == '')) ...[
+                Text("Upcoming Courses", style: Theme.of(context).textTheme.displayMedium?.copyWith(fontSize: 20)),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 280,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _filteredCourses.where((c) => c['instructorId'] == 'system-seed' || c['instructorId'] == null || c['instructorId'] == '').length,
+                    itemBuilder: (context, index) {
+                      final upcomingCourses = _filteredCourses.where((c) => c['instructorId'] == 'system-seed' || c['instructorId'] == null || c['instructorId'] == '').toList();
+                      final course = upcomingCourses[index];
+                      return _buildCourseCard(context, course)
+                          .animate().fadeIn(delay: (100 * index).ms).slideY(begin: 0.2);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              const SizedBox(height: 32),
             ],
           ),
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpCenterScreen())),
+        backgroundColor: AppTheme.primaryPurple,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.help_outline_rounded),
+        label: const Text("Help?", style: TextStyle(fontWeight: FontWeight.bold)),
+        elevation: 4,
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 
   IconData _getCategoryIcon(String? name) {
@@ -694,7 +756,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final rating = (rawRating is num ? rawRating.toDouble() : double.tryParse(rawRating?.toString() ?? '0') ?? 0.0).toStringAsFixed(1);
     final reviews = course['reviewCount']?.toString() ?? "0";
     final views = course['viewsCount']?.toString() ?? "0";
-    final instructorName = course['instructorName'] ?? "Tutor";
+    final isUpcoming = course['instructorId'] == 'system-seed' || course['instructorId'] == null || course['instructorId'] == '';
+    final instructorName = isUpcoming ? "No Tutor Yet" : (course['instructorName'] ?? "Tutor");
     final avatarUrl = course['instructorAvatarUrl'];
 
     return Container(
@@ -708,7 +771,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ]
       ),
       child: InkWell(
-        onTap: () => Navigator.pushNamed(context, '/course-detail', arguments: course),
+        onTap: () => Navigator.pushNamed(context, '/course-detail', arguments: course).then((_) {
+          _fetchTrending();
+        }),
         borderRadius: BorderRadius.circular(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -751,7 +816,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       CircleAvatar(
                         radius: 8,
-                        backgroundImage: (avatarUrl != null && avatarUrl.isNotEmpty)
+                        backgroundImage: (!isUpcoming && avatarUrl != null && avatarUrl.isNotEmpty)
                             ? NetworkImage(UrlHelper.fixIp(avatarUrl)) as ImageProvider
                             : const AssetImage('assets/images/tutor.png'),
                       ),

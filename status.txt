@@ -1,0 +1,14 @@
+## main
+ M backend/course-service/src/controllers/course.controller.ts
+ M backend/gateway-service/index.js
+ M frontend/lib/screens/course/course_video_player.dart
+ M frontend/lib/screens/course/upload_course_screen.dart
+ M frontend/lib/screens/discovery/discovery_screen.dart
+ M frontend/lib/screens/home/course_detail_screen.dart
+ M frontend/lib/screens/home/dashboard_screen.dart
+ M frontend/lib/screens/shorts/shorts_feed_screen.dart
+ M frontend/lib/screens/shorts/upload_short_screen.dart
+ M frontend/lib/services/api_service.dart
+ M frontend/lib/services/session_service.dart
+?? frontend/assets/sounds/
+?? status.txt

@@ -26,6 +26,25 @@ class SessionService {
   int get academicLevel => _academicLevel;
   String get role => _currentRole.toString().split('.').last;
 
+  List<String> _addedCourseIds = [];
+  List<String> get addedCourseIds => _addedCourseIds;
+
+  Future<void> addCourseId(String courseId) async {
+    if (!_addedCourseIds.contains(courseId)) {
+      _addedCourseIds.add(courseId);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('addedCourseIds', _addedCourseIds);
+    }
+  }
+
+  Future<void> removeCourseId(String courseId) async {
+    if (_addedCourseIds.contains(courseId)) {
+      _addedCourseIds.remove(courseId);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('addedCourseIds', _addedCourseIds);
+    }
+  }
+
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _userId = prefs.getString('userId');
@@ -35,6 +54,7 @@ class SessionService {
     _specialization = prefs.getString('specialization');
     _academicSpecialty = prefs.getString('academicSpecialty');
     _academicLevel = prefs.getInt('academicLevel') ?? 1;
+    _addedCourseIds = prefs.getStringList('addedCourseIds') ?? [];
     final roleStr = prefs.getString('role');
     if (roleStr != null) {
       _currentRole = UserRole.values.firstWhere(
@@ -88,6 +108,7 @@ class SessionService {
     _token = null;
     _avatarUrl = null;
     _currentRole = UserRole.student;
+    _addedCourseIds.clear();
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();

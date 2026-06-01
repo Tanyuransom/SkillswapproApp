@@ -169,6 +169,51 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
     }
   }
 
+  Widget _buildAddCourseAction() {
+    final session = SessionService();
+    if (!session.isLoggedIn) return const SizedBox.shrink();
+
+    final course = widget.course;
+    final userLevel = session.academicLevel;
+    final userSpecialty = session.academicSpecialty;
+
+    final courseLevel = course['level'] ?? 1;
+    final courseSpecialty = course['specialty'] ?? '';
+    
+    bool matchesSpecialty = false;
+    if (userSpecialty != null && courseSpecialty.toString().toUpperCase().contains(userSpecialty.toUpperCase())) {
+      matchesSpecialty = true;
+    }
+    
+    bool matchesLevel = courseLevel == userLevel;
+    
+    if (matchesLevel && matchesSpecialty) {
+      return const SizedBox.shrink();
+    }
+
+    final isAdded = session.addedCourseIds.contains(course['id']);
+    
+    return IconButton(
+      icon: Icon(isAdded ? Icons.check_circle : Icons.add_circle_outline, color: Colors.white),
+      tooltip: isAdded ? 'Remove from My Courses' : 'Add to My Courses',
+      onPressed: () async {
+        setState(() {
+          if (isAdded) {
+            session.removeCourseId(course['id']);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Course removed from your available courses.'))
+            );
+          } else {
+            session.addCourseId(course['id']);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Course added to your available courses! 🎉'), backgroundColor: AppTheme.successGreen)
+            );
+          }
+        });
+      },
+    );
+  }
+
   void _recordView() {
     if (widget.course['id'] != null) {
       ApiService.recordCourseView(widget.course['id']);
@@ -186,6 +231,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
           SliverAppBar(
             expandedHeight: 250,
             pinned: true,
+            actions: [
+              _buildAddCourseAction(),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               title: Text(course['title'] ?? 'Course Details', style: const TextStyle(fontSize: 16)),
               background: Container(
@@ -202,17 +250,18 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppTheme.secondaryOrange.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
+                      if ((course['enrollmentCount'] ?? 0) > 10)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.secondaryOrange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            "Popular",
+                            style: TextStyle(color: AppTheme.secondaryOrange, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
                         ),
-                        child: const Text(
-                          "Best Seller",
-                          style: TextStyle(color: AppTheme.secondaryOrange, fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                      ),
                       const SizedBox(width: 12),
                       const Icon(Icons.star, color: AppTheme.accentYellow, size: 20),
                       Text(" ${(course['averageRating'] ?? 0).toString()} (${course['reviewCount'] ?? 0} reviews)", style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -326,7 +375,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text("Reviews", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      if (SessionService().userId != null && SessionService().userId != course['instructorId'])
+                      if (_isEnrolled && SessionService().userId != null && SessionService().userId != course['instructorId'])
                         TextButton.icon(
                           icon: const Icon(Icons.edit, size: 16),
                           label: const Text("Write Review"),
@@ -366,44 +415,102 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -4))],
         ),
         child: ElevatedButton(
-          onPressed: () async {
+          onPressed: () {
             final userId = SessionService().userId;
             if (userId == null) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please sign in first")));
-              return;
+              return () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please sign in first")));
+              };
             }
-            if (userId == course['instructorId']) {
-              _showAddMaterialDialog();
-            } else if (_isEnrolled) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("You are already enrolled! Scroll up to view modules.")));
-              // Enroll
-              try {
-                await ApiService.enrollCourse(
-                  courseId: course['id'] ?? '',
-                  studentId: userId,
-                  instructorId: course['instructorId'],
-                  studentName: SessionService().fullName,
-                  courseTitle: course['title'],
-                  instructorName: _instructorName,
-                  instructorAvatar: _instructorAvatar,
-                );
-                if (context.mounted) {
-                  setState(() {
-                    _isEnrolled = true;
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Enrolled successfully!"), backgroundColor: AppTheme.successGreen));
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: AppTheme.errorRed));
-                }
+            final bool hasNoTutor = course['instructorId'] == null || course['instructorId'] == 'system-seed' || course['instructorId'] == '';
+            if (hasNoTutor) {
+              if (SessionService().isTutor) {
+                return () async {
+                  try {
+                    await ApiService.updateCourse(
+                      courseId: course['id'],
+                      instructorId: userId,
+                      instructorName: SessionService().fullName ?? 'Tutor',
+                      instructorAvatarUrl: SessionService().avatarUrl ?? '',
+                    );
+                    if (context.mounted) {
+                      setState(() {
+                        course['instructorId'] = userId;
+                        course['instructorName'] = SessionService().fullName ?? 'Tutor';
+                        course['instructorAvatarUrl'] = SessionService().avatarUrl ?? '';
+                        _instructorName = SessionService().fullName;
+                        _instructorAvatar = SessionService().avatarUrl;
+                        _isEnrolled = true;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("You are now teaching this course! 🎉"), backgroundColor: AppTheme.successGreen),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Failed to claim course: $e"), backgroundColor: AppTheme.errorRed),
+                      );
+                    }
+                  }
+                };
+              } else {
+                return null; // Disable button
               }
             }
-          },
+            if (userId == course['instructorId']) {
+              return () => _showAddMaterialDialog();
+            } else if (_isEnrolled) {
+              return () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("You are already enrolled! Scroll up to view modules."), backgroundColor: AppTheme.primaryPurple),
+                );
+              };
+            } else {
+              return () async {
+                try {
+                  await ApiService.enrollCourse(
+                    courseId: course['id'] ?? '',
+                    studentId: userId,
+                    instructorId: course['instructorId'],
+                    studentName: SessionService().fullName,
+                    courseTitle: course['title'],
+                    instructorName: _instructorName,
+                    instructorAvatar: _instructorAvatar,
+                  );
+                  if (context.mounted) {
+                    setState(() {
+                      _isEnrolled = true;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Enrolled successfully! 🎉 Welcome to the course."), backgroundColor: AppTheme.successGreen),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Enrollment failed: $e"), backgroundColor: AppTheme.errorRed),
+                    );
+                  }
+                }
+              };
+            }
+          }(),
           style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-          child: Text(SessionService().userId == course['instructorId'] 
-              ? "ADD COURSE MATERIAL" 
-              : _isEnrolled ? "TAKE COURSE" : "ENROLL NOW"),
+          child: Text(() {
+            final bool hasNoTutor = course['instructorId'] == null || course['instructorId'] == 'system-seed' || course['instructorId'] == '';
+            if (hasNoTutor) {
+              if (SessionService().isTutor) {
+                return "TEACH THIS COURSE";
+              } else {
+                return "UPCOMING COURSE (NO TUTOR)";
+              }
+            }
+            if (SessionService().userId == course['instructorId']) {
+              return "ADD COURSE MATERIAL";
+            }
+            return _isEnrolled ? "TAKE COURSE" : "ENROLL NOW";
+          }()),
         ),
       ),
     );

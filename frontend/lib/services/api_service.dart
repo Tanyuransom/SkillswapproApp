@@ -271,6 +271,58 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> getCourseById(String id) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/courses/$id')).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateCourse({
+    required String courseId,
+    String? title,
+    String? description,
+    double? price,
+    String? categoryId,
+    int? level,
+    String? specialty,
+    String? instructorId,
+    String? instructorName,
+    String? instructorAvatarUrl,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/courses/$courseId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          if (title != null) 'title': title,
+          if (description != null) 'description': description,
+          if (price != null) 'price': price,
+          if (categoryId != null) 'categoryId': categoryId,
+          if (level != null) 'level': level,
+          if (specialty != null) 'specialty': specialty,
+          if (instructorId != null) 'instructorId': instructorId,
+          if (instructorName != null) 'instructorName': instructorName,
+          if (instructorAvatarUrl != null) 'instructorAvatarUrl': instructorAvatarUrl,
+        }),
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body)['error'] ?? 'Update failed';
+        throw Exception(error);
+      }
+    } catch (e) {
+      throw Exception('Update Error: ${e.toString()}');
+    }
+  }
+
   static Future<List<dynamic>> getTrendingCourses({int? level, String? specialty}) async {
     try {
       String url = '$baseUrl/courses/trending?';
@@ -321,28 +373,6 @@ class ApiService {
       if (response.statusCode == 201) return jsonDecode(response.body);
       throw Exception('Failed to create course');
     } catch (e) { throw Exception('Creation Error: ${e.toString()}'); }
-  }
-
-  static Future<Map<String, dynamic>> updateCourse({
-    required String courseId,
-    int? level,
-    String? specialty,
-    String? semester,
-  }) async {
-    try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/courses/$courseId'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'level': level,
-          'specialty': specialty,
-          'semester': semester,
-        }),
-      ).timeout(timeoutDuration);
-
-      if (response.statusCode == 200) return jsonDecode(response.body);
-      throw Exception('Failed to update course');
-    } catch (e) { throw Exception('Update Error: ${e.toString()}'); }
   }
 
   static Future<void> deleteCourse(String courseId) async {

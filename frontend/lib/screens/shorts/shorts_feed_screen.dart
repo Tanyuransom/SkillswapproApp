@@ -507,18 +507,38 @@ class _VideoFeedItemState extends State<VideoFeedItem> {
             });
           },
           onDoubleTap: _onDoubleTap,
-          child: _isError 
-              ? Container(color: Colors.black, child: const Center(child: Icon(Icons.error_outline, color: Colors.white, size: 40)))
-              : _isInitialized
-                  ? FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: _controller.value.size.width,
-                        height: _controller.value.size.height,
-                        child: VideoPlayer(_controller),
-                      ),
-                    )
-                  : const Center(child: CircularProgressIndicator(color: Colors.white)),
+          behavior: HitTestBehavior.opaque,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _isError 
+                  ? Container(color: Colors.black, child: const Center(child: Icon(Icons.error_outline, color: Colors.white, size: 40)))
+                  : _isInitialized
+                      ? FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: _controller.value.size.width,
+                            height: _controller.value.size.height,
+                            child: VideoPlayer(_controller),
+                          ),
+                        )
+                      : const Center(child: CircularProgressIndicator(color: Colors.white)),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.3),
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.6),
+                    ],
+                    stops: const [0.0, 0.5, 1.0],
+                  )
+                ),
+              ),
+            ],
+          ),
         ),
         
         if (_showHeart)
@@ -528,21 +548,6 @@ class _VideoFeedItemState extends State<VideoFeedItem> {
                 .scale(begin: const Offset(0.2, 0.2), end: const Offset(1.2, 1.2), duration: 200.ms, curve: Curves.easeOutBack)
                 .fadeOut(delay: 500.ms, duration: 300.ms),
           ),
-        
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withValues(alpha: 0.3),
-                Colors.transparent,
-                Colors.black.withValues(alpha: 0.6),
-              ],
-              stops: const [0.0, 0.5, 1.0],
-            )
-          ),
-        ),
 
         if (_isInitialized && !_controller.value.isPlaying && !_isError)
           const Center(

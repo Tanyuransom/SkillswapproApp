@@ -74,6 +74,7 @@ class _ControlsOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         controller.value.isPlaying ? controller.pause() : controller.play();
       },

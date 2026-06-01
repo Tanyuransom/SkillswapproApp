@@ -25,12 +25,15 @@ class _UploadCourseScreenState extends State<UploadCourseScreen> {
   final List<Map<String, dynamic>> _materials = []; // { 'title': '', 'path': '', 'type': '' }
   bool _isLoading = false;
   bool _isManuallyEnteringCategory = false;
-  bool _isManuallyEnteringSpecialty = false;
   int _selectedLevel = 1;
   String? _selectedSpecialty;
-  final List<String> _specialties = ['ICT', 'ISN', 'CS', 'SEN', 'CYS'];
   final ImagePicker _picker = ImagePicker();
-  final _newSpecialtyController = TextEditingController();
+
+  // Recommended courses
+  List<dynamic> _recommendedCourses = [];
+  String? _selectedRelatedCourseId;
+  bool _isLoadingCourses = false;
+  bool _showAllCourses = false;
 
   @override
   void dispose() {
@@ -38,7 +41,6 @@ class _UploadCourseScreenState extends State<UploadCourseScreen> {
     _descriptionController.dispose();
     _priceController.dispose();
     _newCategoryController.dispose();
-    _newSpecialtyController.dispose();
     super.dispose();
   }
   final session = SessionService();
@@ -49,6 +51,29 @@ class _UploadCourseScreenState extends State<UploadCourseScreen> {
     _selectedLevel = session.academicLevel;
     _selectedSpecialty = session.academicSpecialty;
     _fetchCategories();
+    _fetchRecommendedCourses();
+  }
+
+  void _fetchRecommendedCourses() async {
+    setState(() => _isLoadingCourses = true);
+    try {
+      final courses = await ApiService.getCourses(
+        level: _selectedLevel,
+        specialty: _showAllCourses ? null : _selectedSpecialty,
+      );
+      if (mounted) {
+        setState(() {
+          _recommendedCourses = courses;
+          if (_selectedRelatedCourseId != null &&
+              !courses.any((c) => c['id'] == _selectedRelatedCourseId)) {
+            _selectedRelatedCourseId = null;
+          }
+          _isLoadingCourses = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingCourses = false);
+    }
   }
 
   void _fetchCategories() async {
@@ -103,7 +128,11 @@ class _UploadCourseScreenState extends State<UploadCourseScreen> {
     final description = _descriptionController.text.trim();
     final priceStr = _priceController.text.trim();
     final newCatName = _newCategoryController.text.trim();
-    final tutorId = SessionService().userId;
+    final tutorId = session.userId;
+    if (tutorId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please log in first')));
+      return;
+    }
 
     if (title.isEmpty || description.isEmpty || priceStr.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
@@ -145,11 +174,11 @@ class _UploadCourseScreenState extends State<UploadCourseScreen> {
         title: title,
         description: description,
         price: price,
-        instructorId: session.userId ?? 'mock-tutor-id',
+        instructorId: tutorId,
         categoryId: catId,
         imageUrl: imageUrl,
         level: _selectedLevel,
-        specialty: _isManuallyEnteringSpecialty ? _newSpecialtyController.text.trim() : _selectedSpecialty,
+        specialty: _selectedSpecialty,
         instructorName: session.fullName ?? 'Tutor',
         instructorAvatarUrl: session.avatarUrl,
       );
@@ -301,32 +330,87 @@ class _UploadCourseScreenState extends State<UploadCourseScreen> {
               onChanged: (val) => setState(() => _selectedLevel = val ?? 1),
             ),
             const SizedBox(height: 16),
-            if (!_isManuallyEnteringSpecialty)
-              DropdownButtonFormField<String>(
-                initialValue: _selectedSpecialty,
-                decoration: const InputDecoration(
-                  labelText: 'Specialty (Optional for Level 1/2)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.school),
-                ),
-                items: _specialties.map((s) => DropdownMenuItem(
-                  value: s,
-                  child: Text(s),
-                )).toList(),
-                onChanged: (val) => setState(() => _selectedSpecialty = val),
-              )
-            else
-              TextField(
-                controller: _newSpecialtyController,
-                decoration: const InputDecoration(
-                  labelText: 'Enter Custom Specialty (e.g. Ren)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.add_box_outlined),
-                ),
+            TextFormField(
+              initialValue: _selectedSpecialty ?? 'SEN',
+              decoration: const InputDecoration(
+                labelText: 'Specialty (Locked to your profile)',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.school),
               ),
-            TextButton(
-              onPressed: () => setState(() => _isManuallyEnteringSpecialty = !_isManuallyEnteringSpecialty),
-              child: Text(_isManuallyEnteringSpecialty ? "Select Standard Specialty" : "Manual Specialty Input? (e.g. new specialty)", style: const TextStyle(fontSize: 12)),
+              readOnly: true,
+              enabled: false,
+            ),
+            const SizedBox(height: 16),
+            // ── Related Course (recommended by specialty) ──────────────
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_isLoadingCourses)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else
+                  DropdownButtonFormField<String>(
+                    value: _selectedRelatedCourseId,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: _showAllCourses
+                          ? 'Related Course – All (${_recommendedCourses.length})'
+                          : _recommendedCourses.isEmpty
+                              ? 'No recommended courses found'
+                              : 'Related Course – Recommended (${_recommendedCourses.length})',
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.link),
+                      helperText: 'Optional: link this course to a related course',
+                    ),
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: null,
+                        child: Text('None'),
+                      ),
+                      ..._recommendedCourses.map((c) {
+                        final t = (c['title'] ?? '') as String;
+                        return DropdownMenuItem<String>(
+                          value: c['id'] as String,
+                          child: Text(
+                            t,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        );
+                      }),
+                    ],
+                    onChanged: (val) =>
+                        setState(() => _selectedRelatedCourseId = val),
+                  ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      setState(() => _showAllCourses = !_showAllCourses);
+                      _fetchRecommendedCourses();
+                    },
+                    icon: Icon(
+                      _showAllCourses ? Icons.star : Icons.star_border,
+                      size: 16,
+                      color: AppTheme.primaryPurple,
+                    ),
+                    label: Text(
+                      _showAllCourses
+                          ? 'Show Recommended Only'
+                          : 'Other Courses',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.primaryPurple,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 32),
             const Text("Course Materials", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),

@@ -290,7 +290,7 @@ export class CourseController {
   static async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { title, description, price, categoryId, level, specialty, semester } = req.body;
+      const { title, description, price, categoryId, level, specialty, semester, instructorId, instructorName, instructorAvatarUrl } = req.body;
       const courseRepository = AppDataSource.getRepository(Course);
       const course = await courseRepository.findOneBy({ id: id as any });
       if (!course) {
@@ -304,6 +304,9 @@ export class CourseController {
       if (level !== undefined) course.level = parseInt(level);
       if (specialty !== undefined) course.specialty = specialty;
       if (semester !== undefined) course.semester = semester;
+      if (instructorId !== undefined) course.instructorId = instructorId;
+      if (instructorName !== undefined) course.instructorName = instructorName;
+      if (instructorAvatarUrl !== undefined) course.instructorAvatarUrl = instructorAvatarUrl;
 
       await courseRepository.save(course);
       res.json(course);
