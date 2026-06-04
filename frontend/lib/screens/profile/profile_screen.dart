@@ -75,7 +75,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showLogoutReviewDialog() {
+  void _showLogoutReviewDialog(String currentUserName) {
     int rating = 5;
     final commentController = TextEditingController();
     bool isSubmitting = false;
@@ -153,6 +153,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           final userId = SessionService().userId ?? "anonymous";
                           await ApiService.submitAppReview(
                             userId: userId,
+                            userName: currentUserName,
                             rating: rating,
                             comment: commentController.text.trim(),
                           );
@@ -282,7 +283,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   }),
                   const SizedBox(height: 24),
                   _buildProfileOption(context, Icons.logout, "Log Out", isDestructive: true, onTap: () {
-                    _showLogoutReviewDialog();
+                    _showLogoutReviewDialog(name);
                   }),
                   const SizedBox(height: 32),
                 ],

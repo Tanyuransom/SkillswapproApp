@@ -142,7 +142,7 @@ export class UserController {
 
   static async addAppReview(req: Request, res: Response) {
     try {
-      const { userId, rating, comment } = req.body;
+      const { userId, userName, rating, comment } = req.body;
       if (!rating) {
         return res.status(400).json({ error: "Rating is required" });
       }
@@ -167,6 +167,7 @@ export class UserController {
 
       reviews.push({
         userId: userId || "anonymous",
+        userName: userName || "Anonymous",
         rating,
         comment: comment || "",
         createdAt: new Date()
@@ -176,6 +177,27 @@ export class UserController {
       res.status(201).json({ success: true, message: "Feedback submitted successfully" });
     } catch (err: any) {
       res.status(500).json({ error: err.message || "Failed to save feedback" });
+    }
+  }
+
+  static async getAppReviews(req: Request, res: Response) {
+    try {
+      const path = require("path");
+      const fs = require("fs");
+      const feedbackPath = path.join(__dirname, "../../uploads/feedback.json");
+
+      let reviews: any[] = [];
+      if (fs.existsSync(feedbackPath)) {
+        try {
+          const content = fs.readFileSync(feedbackPath, "utf-8");
+          reviews = JSON.parse(content);
+        } catch (e) {
+          console.error("Error reading feedback.json", e);
+        }
+      }
+      res.status(200).json(reviews);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to retrieve feedback" });
     }
   }
 }

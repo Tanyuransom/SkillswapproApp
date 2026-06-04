@@ -94,7 +94,8 @@ export class MessagingController {
       });
 
       const conversationsMap: { [key: string]: any } = {};
-      
+
+      // First pass: collect latest message info per conversation
       for (const msg of messages) {
         const partnerId = msg.senderId === userId ? msg.receiverId : msg.senderId;
         if (!conversationsMap[partnerId]) {
@@ -103,20 +104,36 @@ export class MessagingController {
             latestMessage: msg.content,
             time: msg.createdAt,
             unreadCount: 0,
-            partnerName: msg.senderId === userId ? undefined : msg.senderName,
-            partnerAvatar: msg.senderId === userId ? undefined : msg.senderAvatarUrl,
-            partnerRole: msg.senderId === userId ? undefined : msg.senderRole,
+            partnerName: null,
+            partnerAvatar: null,
+            partnerRole: null,
           };
         }
         if (msg.receiverId === userId && !msg.isRead) {
           conversationsMap[partnerId].unreadCount++;
         }
-        
-        if (msg.senderId !== userId) {
-          if (!conversationsMap[partnerId].partnerName) conversationsMap[partnerId].partnerName = msg.senderName;
-          if (!conversationsMap[partnerId].partnerAvatar) conversationsMap[partnerId].partnerAvatar = msg.senderAvatarUrl;
-          if (!conversationsMap[partnerId].partnerRole) conversationsMap[partnerId].partnerRole = msg.senderRole;
+      }
+
+      // Second pass: fill in partner identity from any message they sent TO us
+      for (const msg of messages) {
+        if (msg.senderId === userId) continue; // skip our own messages
+        const partnerId = msg.senderId;
+        if (conversationsMap[partnerId]) {
+          if (!conversationsMap[partnerId].partnerName && msg.senderName) {
+            conversationsMap[partnerId].partnerName = msg.senderName;
+          }
+          if (!conversationsMap[partnerId].partnerAvatar && msg.senderAvatarUrl) {
+            conversationsMap[partnerId].partnerAvatar = msg.senderAvatarUrl;
+          }
+          if (!conversationsMap[partnerId].partnerRole && msg.senderRole) {
+            conversationsMap[partnerId].partnerRole = msg.senderRole;
+          }
         }
+      }
+
+      // Final pass: ensure no conversation has a null partnerName (fallback)
+      for (const conv of Object.values(conversationsMap) as any[]) {
+        if (!conv.partnerName) conv.partnerName = "User";
       }
 
       res.status(200).json(Object.values(conversationsMap));

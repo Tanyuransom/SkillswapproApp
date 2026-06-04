@@ -6,7 +6,7 @@ import '../services/session_service.dart';
 
 class ApiService {
   // --- CENTRAL GATEWAY CONFIGURATION ---
-  static const String hostIp = '167.86.100.54'; 
+  static const String hostIp = '10.136.249.132'; 
   static const String baseUrl = 'http://$hostIp:3000/api';
   static const Duration timeoutDuration = Duration(seconds: 30);
   
@@ -167,6 +167,7 @@ class ApiService {
 
   static Future<Map<String, dynamic>> submitAppReview({
     required String userId,
+    required String userName,
     required int rating,
     required String comment,
   }) async {
@@ -176,6 +177,7 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'userId': userId,
+          'userName': userName,
           'rating': rating,
           'comment': comment,
         }),
@@ -189,6 +191,20 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Feedback submission error: ${e.toString()}');
+    }
+  }
+
+  static Future<List<dynamic>> getAppReviews() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/app-reviews'),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      return [];
     }
   }
 

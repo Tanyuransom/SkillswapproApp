@@ -67,11 +67,15 @@ class _ChatScreenState extends State<ChatScreen> {
       final List<dynamic> newMessages = history['messages'] ?? [];
 
       if (mounted) {
+        final hadNewMessages = newMessages.length > _messages.length;
         setState(() {
           _messages = newMessages;
           if (!isBackground) _isLoading = false;
         });
-        if (!isBackground) _scrollToBottom();
+        // Scroll to bottom on first load OR when new messages arrive
+        if (!isBackground || hadNewMessages) {
+          _scrollToBottom();
+        }
       }
     } catch (e) {
       if (mounted && !isBackground) setState(() => _isLoading = false);

@@ -31,6 +31,7 @@ router.post("/follow", UserController.followTutor);
 router.post("/unfollow", UserController.unfollowTutor);
 router.get("/follow/check", UserController.checkFollowStatus);
 router.get("/followers/:tutorId", UserController.getFollowers);
+router.get("/app-reviews", UserController.getAppReviews);
 router.get("/:id", UserController.getUser);
 router.delete("/:id", UserController.deleteUser);
 router.post("/app-reviews", UserController.addAppReview);

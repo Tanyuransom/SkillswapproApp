@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
 import '../../services/session_service.dart';
+import '../messaging/chat_screen.dart';
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});
@@ -17,6 +18,7 @@ class _AdminShellState extends State<AdminShell> {
     UserManagementScreen(),
     VerificationQueueScreen(),
     CourseAllocationScreen(),
+    FeedbackListScreen(),
     SystemSettingsScreen(),
   ];
 
@@ -39,7 +41,9 @@ class _AdminShellState extends State<AdminShell> {
               ? 'Verifications' 
               : _currentIndex == 2
                 ? 'Course Allocation'
-                : 'System Control'
+                : _currentIndex == 3
+                  ? 'User Feedback'
+                  : 'System Control'
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -73,6 +77,10 @@ class _AdminShellState extends State<AdminShell> {
           BottomNavigationBarItem(
             icon: Icon(Icons.assignment_turned_in_rounded),
             label: 'Allocations',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.rate_review_rounded),
+            label: 'Feedback',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings_suggest_rounded),
@@ -262,6 +270,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: ListTile(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ChatScreen(
+                                  partnerId: user['id'],
+                                  partnerName: user['fullName'] ?? 'User',
+                                  partnerAvatar: user['avatarUrl'],
+                                ),
+                              ),
+                            );
+                          },
                           leading: CircleAvatar(
                             backgroundColor: isAdmin
                                 ? Colors.red
@@ -285,9 +305,29 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           subtitle: Text(
                             "Role: ${role.toUpperCase()} • Email: ${user['email'] ?? 'N/A'}",
                           ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            onPressed: () => _confirmDeleteUser(user),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.chat_bubble_outline, color: AppTheme.primaryPurple),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ChatScreen(
+                                        partnerId: user['id'],
+                                        partnerName: user['fullName'] ?? 'User',
+                                        partnerAvatar: user['avatarUrl'],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                onPressed: () => _confirmDeleteUser(user),
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -1146,6 +1186,170 @@ class _CourseAllocationScreenState extends State<CourseAllocationScreen> {
         onPressed: _showAddCourseDialog,
         backgroundColor: AppTheme.primaryPurple,
         child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+}
+
+class FeedbackListScreen extends StatefulWidget {
+  const FeedbackListScreen({super.key});
+
+  @override
+  State<FeedbackListScreen> createState() => _FeedbackListScreenState();
+}
+
+class _FeedbackListScreenState extends State<FeedbackListScreen> {
+  List<dynamic> _feedbackList = [];
+  Map<String, dynamic> _userMap = {};
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final feedback = await ApiService.getAppReviews();
+      final users = await ApiService.getUsers();
+      
+      final Map<String, dynamic> userMap = {};
+      for (var u in users) {
+        if (u['id'] != null) {
+          userMap[u['id']] = u;
+        }
+      }
+
+      setState(() {
+        _feedbackList = feedback;
+        _userMap = userMap;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Scaffold(
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        child: _feedbackList.isEmpty
+            ? const Center(child: Text("No feedback received yet."))
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _feedbackList.length,
+                itemBuilder: (context, index) {
+                  final fb = _feedbackList[index];
+                  final userId = fb['userId'] ?? 'anonymous';
+                  final bool isAnonymous = userId == 'anonymous';
+                  
+                  final user = _userMap[userId];
+                  final String userName = fb['userName'] ?? (user != null ? (user['fullName'] ?? 'User') : (isAnonymous ? 'Anonymous' : 'User ($userId)'));
+                  final String? avatarUrl = user?['avatarUrl'];
+                  final int rating = fb['rating'] ?? 5;
+                  final String comment = fb['comment'] ?? '';
+                  final String dateStr = fb['createdAt'] != null
+                      ? DateTime.parse(fb['createdAt']).toLocal().toString().substring(0, 16)
+                      : 'N/A';
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: isAnonymous ? Colors.grey : AppTheme.primaryPurple,
+                                backgroundImage: (avatarUrl != null && avatarUrl.startsWith('http'))
+                                    ? NetworkImage(avatarUrl)
+                                    : null,
+                                child: (avatarUrl == null || !avatarUrl.startsWith('http'))
+                                    ? Text(
+                                        userName[0].toUpperCase(),
+                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      userName,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      dateStr,
+                                      style: TextStyle(color: isDark ? Colors.grey : Colors.grey.shade600, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (!isAnonymous)
+                                ElevatedButton.icon(
+                                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
+                                  label: const Text('Inbox'),
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    backgroundColor: AppTheme.primaryPurple,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ChatScreen(
+                                          partnerId: userId,
+                                          partnerName: userName,
+                                          partnerAvatar: avatarUrl,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: List.generate(5, (starIdx) {
+                              return Icon(
+                                starIdx < rating ? Icons.star : Icons.star_border,
+                                color: AppTheme.accentYellow,
+                                size: 20,
+                              );
+                            }),
+                          ),
+                          if (comment.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              comment,
+                              style: const TextStyle(fontSize: 14, height: 1.3),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
       ),
     );
   }
