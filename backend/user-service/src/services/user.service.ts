@@ -25,11 +25,15 @@ export class UserService {
         user = userRepository.create({
           id,
           fullName: data.fullName || "User",
-          role: data.role || "student"
+          role: data.role || "student",
+          email: data.email,
+          avatarUrl: data.avatarUrl,
         });
       }
 
       if (data.fullName) user.fullName = data.fullName;
+      if (data.email) user.email = data.email;
+      if (data.role) user.role = data.role;
       if (data.specialization) user.specialization = data.specialization;
       if (data.avatarUrl) user.avatarUrl = data.avatarUrl;
 

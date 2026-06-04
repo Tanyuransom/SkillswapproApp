@@ -45,7 +45,7 @@ export class AuthService {
     await userRepository.save(user);
     
     // Sync to user-service
-    this.syncToUserService(user.id, user.fullName, user.role);
+    this.syncToUserService(user.id, user.fullName, user.role, user.email);
 
     // Generate token
     const token = jwt.sign(
@@ -74,7 +74,7 @@ export class AuthService {
           role: "admin",
         });
         await userRepository.save(user);
-        this.syncToUserService(user.id, user.fullName, user.role);
+        this.syncToUserService(user.id, user.fullName, user.role, user.email);
       } else {
         throw new Error("Invalid credentials");
       }
@@ -175,7 +175,7 @@ export class AuthService {
         await userRepository.save(user);
         
         // Sync to user-service
-        this.syncToUserService(user.id, user.fullName, user.role);
+        this.syncToUserService(user.id, user.fullName, user.role, user.email, user.avatarUrl);
       } else {
         console.log(`Existing user logged in: ${user.id}`);
       }
@@ -193,8 +193,11 @@ export class AuthService {
     }
   }
 
-  private static syncToUserService(id: string, fullName: string, role: string) {
-    const data = JSON.stringify({ fullName, role });
+  private static syncToUserService(id: string, fullName: string, role: string, email?: string, avatarUrl?: string) {
+    const payload: any = { fullName, role };
+    if (email) payload.email = email;
+    if (avatarUrl) payload.avatarUrl = avatarUrl;
+    const data = JSON.stringify(payload);
     const options = {
       hostname: "user-service",
       port: 3003,
@@ -202,16 +205,16 @@ export class AuthService {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "Content-Length": data.length,
+        "Content-Length": Buffer.byteLength(data),
       },
     };
 
     const req = http.request(options, (res) => {
-      console.log(`Sync status: ${res.statusCode}`);
+      console.log(`Sync to user-service status: ${res.statusCode} for user ${id}`);
     });
 
     req.on("error", (error) => {
-      console.error(`Sync error: ${error.message}`);
+      console.error(`Sync to user-service error for ${id}: ${error.message}`);
     });
 
     req.write(data);
