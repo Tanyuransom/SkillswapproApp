@@ -1,0 +1,42 @@
+---
+- name: Deploy SkillSwap Pro Application
+  hosts: production
+  tasks:
+    - name: Clone or pull Git repository
+      git:
+        repo: 'https://github.com/Tanyuransom/SkillswapproApp.git'
+        dest: /opt/skillprof
+        version: main
+        force: yes
+
+    - name: Ensure course-service uploads folder has write permissions
+      file:
+        path: /opt/skillprof/backend/course-service/uploads/courses
+        state: directory
+        mode: '0777'
+
+    - name: Ensure shorts-service uploads folder has write permissions
+      file:
+        path: /opt/skillprof/backend/shorts-service/uploads/shorts
+        state: directory
+        mode: '0777'
+
+    - name: Pull and launch containers using docker-compose
+      shell: |
+        cd /opt/skillprof/backend
+        docker-compose down
+        docker-compose up -d --build
+      register: compose_output
+
+    - name: Display docker-compose logs if deployment fails
+      debug:
+        var: compose_output.stdout_lines
+
+    - name: Wait for API Gateway health check to be responsive
+      uri:
+        url: "http://localhost:3000/api/app-version"
+        status_code: 200
+      retries: 6
+      delay: 5
+      register: result
+      until: result.status == 200

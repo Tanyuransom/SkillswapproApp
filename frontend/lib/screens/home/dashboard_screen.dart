@@ -184,12 +184,119 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  void _showLogoutReviewDialog(String currentUserName) {
+    int rating = 5;
+    final commentController = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateSB) {
+          return AlertDialog(
+            title: const Text("Rate SkillSwap Pro"),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Before you leave, please let us know how we can improve!"),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      return IconButton(
+                        icon: Icon(
+                          index < rating ? Icons.star : Icons.star_border,
+                          color: AppTheme.accentYellow,
+                          size: 32,
+                        ),
+                        onPressed: isSubmitting
+                            ? null
+                            : () => setStateSB(() => rating = index + 1),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: commentController,
+                    maxLines: 3,
+                    enabled: !isSubmitting,
+                    decoration: const InputDecoration(
+                      hintText: "What features should be added or improved?",
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  if (isSubmitting) ...[
+                    const SizedBox(height: 16),
+                    const CircularProgressIndicator(),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                      },
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                        SessionService().clearSession();
+                        Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+                      },
+                child: const Text("Skip & Log Out"),
+              ),
+              ElevatedButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        setStateSB(() => isSubmitting = true);
+                        try {
+                          final userId = SessionService().userId ?? "anonymous";
+                          await ApiService.submitAppReview(
+                            userId: userId,
+                            userName: currentUserName,
+                            rating: rating,
+                            comment: commentController.text.trim(),
+                          );
+                        } catch (e) {
+                          debugPrint("Feedback upload failed: $e");
+                        }
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          SessionService().clearSession();
+                          Navigator.pushNamedAndRemoveUntil(context, '/signin', (route) => false);
+                        }
+                      },
+                child: const Text("Submit & Log Out"),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.logout_rounded, color: AppTheme.errorRed),
+          onPressed: () {
+            _showLogoutReviewDialog(session.fullName ?? "User");
+          },
+          tooltip: 'Log Out',
+        ),
         title: const Text('SkillProf Platform'),
         actions: [
           IconButton(

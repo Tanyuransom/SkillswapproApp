@@ -208,6 +208,50 @@ export class CourseController {
       res.status(500).json({ error: "Failed to add course material", details: error });
     }
   }
+
+  static async deleteMaterial(req: Request, res: Response) {
+    try {
+      const { id, materialIndex } = req.params;
+      const courseRepository = AppDataSource.getRepository(Course);
+      const course = await courseRepository.findOneBy({ id: id as any });
+      
+      if (!course) {
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      if (!course.materials || !Array.isArray(course.materials)) {
+        return res.status(400).json({ error: "No materials found in this course" });
+      }
+
+      const index = parseInt(materialIndex, 10);
+      if (isNaN(index) || index < 0 || index >= course.materials.length) {
+        return res.status(400).json({ error: "Invalid material index" });
+      }
+
+      const material = course.materials[index];
+      if (material && material.url && material.url.startsWith("/uploads/courses/")) {
+        try {
+          const filename = material.url.replace("/uploads/courses/", "");
+          const fs = require("fs");
+          const path = require("path");
+          const filePath = path.join(__dirname, "../../uploads", filename);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        } catch (e) {
+          console.error("Failed to delete physical material file:", e);
+        }
+      }
+
+      course.materials.splice(index, 1);
+      await courseRepository.save(course);
+
+      res.status(200).json({ success: true, course });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete course material", details: error });
+    }
+  }
+
   static async delete(req: Request, res: Response) {
     try {
       const { id } = req.params;

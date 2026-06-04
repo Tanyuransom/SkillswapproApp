@@ -43,6 +43,7 @@ router.post("/", CourseController.create);
 router.put("/:id", CourseController.update);
 router.put("/instructor/:instructorId", CourseController.updateInstructorInfo);
 router.post("/:id/materials", CourseController.addMaterial);
+router.delete("/:id/materials/:materialIndex", CourseController.deleteMaterial);
 router.patch("/:id/view", CourseController.incrementViews);
 router.delete("/all-courses", CourseController.deleteAll);
 router.delete("/:id", CourseController.delete);

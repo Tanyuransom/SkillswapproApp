@@ -424,6 +424,21 @@ class ApiService {
     } catch (e) { throw Exception('Material Error: ${e.toString()}'); }
   }
 
+  static Future<Map<String, dynamic>> deleteCourseMaterial({
+    required String courseId,
+    required int materialIndex,
+  }) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/courses/$courseId/materials/$materialIndex'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) return jsonDecode(response.body);
+      throw Exception('Failed to delete course material');
+    } catch (e) { throw Exception('Delete Material Error: ${e.toString()}'); }
+  }
+
   static Future<List<dynamic>> getTutorCourses(String tutorId) async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/courses/tutor/$tutorId/courses'))

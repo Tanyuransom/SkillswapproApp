@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
 import '../../services/session_service.dart';
+import 'manage_course_screen.dart';
 
 class MyCoursesScreen extends StatefulWidget {
   const MyCoursesScreen({super.key});
@@ -127,42 +128,54 @@ class _MyCoursesScreenState extends State<MyCoursesScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryPurple.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ManageCourseScreen(course: course),
+            ),
+          );
+          _fetchCourses();
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryPurple.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.school, color: AppTheme.primaryPurple, size: 40),
               ),
-              child: const Icon(Icons.school, color: AppTheme.primaryPurple, size: 40),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    course['title'] ?? 'Untitled Course',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text('${course['price']} fr', style: const TextStyle(color: AppTheme.primaryPurple, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text('Status: ${course['status'] ?? 'Active'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      course['title'] ?? 'Untitled Course',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text('${course['price']} fr', style: const TextStyle(color: AppTheme.primaryPurple, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    Text('Status: ${course['status'] ?? 'Active'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: AppTheme.errorRed),
-              onPressed: () => _confirmDelete(course['id'], course['title'] ?? 'this course'),
-            ),
-          ],
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: AppTheme.errorRed),
+                onPressed: () => _confirmDelete(course['id'], course['title'] ?? 'this course'),
+              ),
+            ],
+          ),
         ),
       ),
     );
