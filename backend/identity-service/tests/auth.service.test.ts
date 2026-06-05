@@ -3,7 +3,7 @@ import { AuthService } from "../src/services/auth.service";
 import { User } from "../src/entities/User";
 import * as bcrypt from "bcryptjs";
 import * as jwt from "jsonwebtoken";
-import http from "http";
+import * as http from "http";
 
 jest.mock("../src/data-source", () => ({
   AppDataSource: {
@@ -11,13 +11,20 @@ jest.mock("../src/data-source", () => ({
   }
 }));
 
-jest.mock("http", () => ({
-  request: jest.fn().mockReturnValue({
+jest.mock("http", () => {
+  const mockReq = {
     on: jest.fn(),
     write: jest.fn(),
     end: jest.fn()
-  })
-}));
+  };
+  return {
+    __esModule: true,
+    request: jest.fn().mockReturnValue(mockReq),
+    default: {
+      request: jest.fn().mockReturnValue(mockReq)
+    }
+  };
+});
 
 describe("AuthService Unit Tests", () => {
   let mockRepository: any;
@@ -32,6 +39,14 @@ describe("AuthService Unit Tests", () => {
       delete: jest.fn()
     };
     (AppDataSource.getRepository as jest.Mock).mockReturnValue(mockRepository);
+
+    // Set up http.request mock return value before each test
+    const mockReq = {
+      on: jest.fn(),
+      write: jest.fn(),
+      end: jest.fn()
+    };
+    (http.request as jest.Mock).mockReturnValue(mockReq);
   });
 
   describe("register", () => {
@@ -118,12 +133,13 @@ describe("AuthService Unit Tests", () => {
 
     it("should auto-register admin if admin email is not found", async () => {
       mockRepository.findOneBy.mockResolvedValue(null);
+      const hashedPassword = await bcrypt.hash("adminpassword", 12);
       const mockUser = {
         id: "admin-id",
         email: "john@admin@skillswapprro",
         fullName: "john",
         role: "admin",
-        password: "hashedpassword"
+        password: hashedPassword
       };
       mockRepository.create.mockReturnValue(mockUser);
       mockRepository.save.mockResolvedValue(mockUser);
@@ -211,6 +227,54 @@ describe("AuthService Unit Tests", () => {
           newPassword: "newpassword123"
         })
       ).rejects.toThrow("User not found");
+    });
+  });
+
+  describe("googleLogin", () => {
+    it("should login existing google user successfully", async () => {
+      const mockUser = {
+        id: "google-user-123",
+        email: "tanyuransom339@gmail.com",
+        fullName: "Tanyu Ransom",
+        role: "student"
+      };
+      mockRepository.findOneBy.mockResolvedValue(mockUser);
+
+      const result = await AuthService.googleLogin("test-google-token");
+      expect(result).toHaveProperty("token");
+      expect(result.user.id).toEqual("google-user-123");
+    });
+
+    it("should return requireRole true if google user is new and no role is provided", async () => {
+      mockRepository.findOneBy.mockResolvedValue(null);
+
+      const result = await AuthService.googleLogin("test-google-token");
+      expect(result).toHaveProperty("requireRole", true);
+      expect(result).toHaveProperty("email", "tanyuransom339@gmail.com");
+    });
+
+    it("should auto-register and login new google user if role is provided", async () => {
+      mockRepository.findOneBy.mockResolvedValue(null);
+      const mockUser = {
+        id: "new-google-user",
+        email: "tanyuransom339@gmail.com",
+        fullName: "Tanyu Ransom",
+        role: "tutor"
+      };
+      mockRepository.create.mockReturnValue(mockUser);
+      mockRepository.save.mockResolvedValue(mockUser);
+
+      const result = await AuthService.googleLogin("test-google-token", "tutor");
+      expect(result).toHaveProperty("token");
+      expect(result.user.role).toEqual("tutor");
+      expect(mockRepository.create).toHaveBeenCalled();
+      expect(mockRepository.save).toHaveBeenCalled();
+    });
+
+    it("should throw error if google verification fails", async () => {
+      await expect(
+        AuthService.googleLogin("invalid-real-token")
+      ).rejects.toThrow();
     });
   });
 });
