@@ -1,28 +1,28 @@
 {
   "project_info": {
-    "project_number": "103593137684",
-    "project_id": "skillswapppro",
-    "storage_bucket": "skillswapppro.firebasestorage.app"
+    "project_number": "858897578892",
+    "project_id": "skillswappro-493309",
+    "storage_bucket": "skillswappro-493309.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:103593137684:android:f32667be9a1db69c0bf901",
+        "mobilesdk_app_id": "1:858897578892:android:f32667be9a1db69c0bf901",
         "android_client_info": {
           "package_name": "com.example.skill_swap_pro"
         }
       },
       "oauth_client": [
         {
-          "client_id": "103593137684-i46m5ekjvd4u8r05g7f8vqrrqpt7jbqs.apps.googleusercontent.com",
+          "client_id": "858897578892-l3anj4gi62i5ulk49tvbsu0e52mocro4.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.skill_swap_pro",
-            "certificate_hash": "a5a9149e15091a8e886f2d864da874ae7b608f63"
+            "certificate_hash": "b3c6b2c7e113f6b07f209c088ddbba1ab8b62b28"
           }
         },
         {
-          "client_id": "103593137684-3uitoc6guj875oiks3r89s5i0kbp19oh.apps.googleusercontent.com",
+          "client_id": "858897578892-incp36sui82b19181ae1jneino99eudd.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -35,7 +35,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "103593137684-3uitoc6guj875oiks3r89s5i0kbp19oh.apps.googleusercontent.com",
+              "client_id": "858897578892-incp36sui82b19181ae1jneino99eudd.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

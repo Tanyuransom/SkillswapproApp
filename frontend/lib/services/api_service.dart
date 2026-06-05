@@ -655,17 +655,16 @@ class ApiService {
           'text': text,
         }),
       ).timeout(timeoutDuration);
-      if (response.statusCode == 201) return jsonDecode(response.body);
-      throw Exception('Failed to add comment');
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw Exception('Failed to add comment: ${response.statusCode}');
     } catch (e) {
-      throw Exception('Comment Error: ${e.toString()}');
+      throw Exception('AddComment Error: ${e.toString()}');
     }
   }
 
-  static Future<List<dynamic>> getComments({
-    required String targetId,
-    required String targetType,
-  }) async {
+  static Future<List<dynamic>> getComments(String targetId, String targetType) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/comments?targetId=$targetId&targetType=$targetType'),
@@ -1198,49 +1197,6 @@ class ApiService {
     }
   }
 
-  // --- COMMENTS (Comment Service) ---
-  static Future<List<dynamic>> getComments(String targetId, String targetType) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/comments?targetId=$targetId&targetType=$targetType'),
-      ).timeout(timeoutDuration);
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      return [];
-    } catch (e) {
-      print('GetComments Error: $e');
-      return [];
-    }
-  }
-
-  static Future<Map<String, dynamic>> addComment({
-    required String userId,
-    required String userName,
-    required String targetId,
-    required String targetType,
-    required String text,
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/comments'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'userId': userId,
-          'userName': userName,
-          'targetId': targetId,
-          'targetType': targetType,
-          'text': text,
-        }),
-      ).timeout(timeoutDuration);
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        return jsonDecode(response.body);
-      }
-      throw Exception('Failed to add comment: ${response.statusCode}');
-    } catch (e) {
-      throw Exception('AddComment Error: ${e.toString()}');
-    }
-  }
 
   static Future<bool> deleteComment(String id) async {
     try {

@@ -7,7 +7,7 @@ import '../theme/app_theme.dart';
 
 mixin GoogleSignInMixin<T extends StatefulWidget> on State<T> {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    serverClientId: '103593137684-3uitoc6guj875oiks3r89s5i0kbp19oh.apps.googleusercontent.com',
+    serverClientId: '858897578892-incp36sui82b19181ae1jneino99eudd.apps.googleusercontent.com',
     scopes: ['email', 'profile'],
   );
 

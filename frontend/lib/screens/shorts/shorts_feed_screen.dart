@@ -748,8 +748,8 @@ class _CommentsSheetState extends State<_CommentsSheet> {
   Future<void> _fetchComments() async {
     try {
       final comments = await ApiService.getComments(
-        targetId: widget.shortId,
-        targetType: 'short',
+        widget.shortId,
+        'short',
       );
       if (mounted) setState(() { _comments = comments; _isLoading = false; });
     } catch (e) {
