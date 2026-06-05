@@ -1,90 +1,153 @@
-<h1 align="center">
-  <br>
-  SkillSwap Pro
-  <br>
-</h1>
+# SkillSwap Pro 🚀
 
-<h4 align="center">A peer-to-peer, dual-role educational platform empowering users to teach, learn, and grow.</h4>
+A state-of-the-art, peer-to-peer microservices educational platform. Empowering students and instructors to seamlessly switch between learning new skills and monetizing their expertise.
 
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#tech-stack">Tech Stack</a> •
-  <a href="#architecture">Architecture</a> •
-  <a href="#getting-started">Getting Started</a>
-</p>
+---
+
+## 📖 Table of Contents
+1. [Overview](#-overview)
+2. [Key Features](#-key-features)
+3. [System Architecture & Microservices](#-system-architecture--microservices)
+4. [Infrastructure & DevOps Integration](#-infrastructure--devops-integration)
+   - [Docker Compose Deployment](#1-docker-compose-deployment)
+   - [Jenkins CI/CD Pipeline](#2-jenkins-cicd-pipeline)
+   - [Ansible IaC Playbooks](#3-ansible-iac-playbooks)
+   - [Kubernetes Orchestration](#4-kubernetes-orchestration)
+   - [Prometheus & Grafana Monitoring](#5-prometheus--grafana-monitoring)
+5. [Frontend (Flutter) Client Setup](#-frontend-flutter-client-setup)
+6. [API Documentation](#-api-documentation)
+7. [User Onboarding Guide](#-user-onboarding-guide)
 
 ---
 
 ## 📖 Overview
 
-**SkillSwap Pro** is an innovative educational ecosystem built to bridge the gap between eager learners and skilled professionals. Unlike traditional learning management systems, SkillSwap Pro actively promotes micro-learning through dynamic **Shorts**, direct peer-to-peer **Mentorship Messaging**, and comprehensive **Tutor Command Centers**.
+**SkillSwap Pro** is an innovative peer-to-peer microservices learning platform designed for the modern educational ecosystem. It breaks away from traditional monolithic LMS structures, splitting business logic into **decoupled microservices** backed by independent databases and a unified API Gateway.
 
-Users can seamlessly swap between learning new skills and monetizing their own expertise—all wrapped in a beautifully designed, premium mobile interface.
+The application features a premium Flutter-based mobile client supporting role-based dashboards, TikTok-style chronological learning videos ("Shorts"), real-time chat, Mobile Money transactions, and an interactive knowledge blog.
 
-## ✨ Features
+---
 
-*   **Dual-Role Authentication:** Users can selectively onboard as **Students** (to browse and enroll in courses) or **Tutors** (to upload content, teach, and track their monetization stats).
-*   **Micro-learning "Shorts" Feed:** A dedicated TikTok-style chronological feed where tutors upload short, engaging video tips.
-*   **Real-Time Direct Messaging:** Integrated chat infrastructure allowing direct communication and mentorship between students and their enrolled tutors.
-*   **Live Notification Center:** Application-wide notification badges alerting users to new enrollments, unread messages, and platform updates.
-*   **Media Processing:** Seamless native video streaming optimized for mobile via Android ExoPlayer.
-*   **Secure API Layer:** JSON Web Token (JWT) authenticated microservices ensuring secure data distribution across users.
+## ✨ Key Features
 
-## 🛠 Tech Stack
+*   **Dual-Role Access:** Seamless toggle between **Student** dashboard (course search, enrollment, payments) and **Tutor** dashboard (monetization statistics, lesson uploads, shorts publication).
+*   **Micro-Learning "Shorts":** Quick, bite-sized vertical video tips with optimized ExoPlayer media streaming.
+*   **Cameroon Mobile Money (MTN & Orange):** Integrated payment flow supporting USSD push simulation, automatic 10% tax calculation, and instant course access.
+*   **Knowledge Blog & Comments:** Discover articles written by tutors, with integrated comment section powered by comment-service.
+*   **Real-Time Mentorship Messaging:** Integrated live chat communication between students and tutors.
+*   **AI-Powered Verification Exams:** Dynamic question generation for validating tutor credentials.
 
-**Client Application (Frontend)**
-*   **Framework:** Flutter (Dart)
-*   **State & Networking:** Standard `http` package, robust custom Session Management
-*   **Media:** `video_player`, `image_picker`
-*   **Architecture:** Feature-first Screen routing
+---
 
-**Microservices Building Blocks (Backend)**
-*   **Runtime:** Node.js (TypeScript)
-*   **Framework:** Express.js
-*   **Database:** PostgreSQL 15
-*   **ORM:** TypeORM
-*   **Authentication:** JWT, Google OAuth 2.0 Integration
-*   **Containerization:** Docker & Docker Compose
+## 🏗 System Architecture & Microservices
 
-## 🏗 Architecture 
+The backend is built as a set of highly decoupled Node.js (TypeScript) services:
 
-The backend infrastructure is split into microservices for modular scalability:
+| Microservice | Port | Description | DB Instance |
+|--------------|------|-------------|-------------|
+| **Gateway Service** | `3000` | Unified API entry point, route proxy, and public static file serving. | None |
+| **Identity Service** | `3001` | JWT Generation, User Authentication, Google Sign-in validation. | `identity-db` |
+| **User Service** | `3003` | User profile data, avatars, user preferences management. | `user-db` |
+| **Course Service** | `3002` | Courses creation, details, outlines, reviews database. | `course-db` |
+| **Enrollment Service** | `3008` | Enrollment flow, course participation logs. | `enrollment-db` |
+| **Shorts Service** | `3005` | Uploading and streaming short-form video assets. | `common-db` |
+| **Payment Service** | `3009` | checkout invoices, 10% tax addition, USSD authentication. | `user-db` |
+| **Blog Service** | `3011` | Blog posts management, CRUD operations, cover uploads. | `common-db` |
+| **Comment Service** | `3015` | Interactive comments on blogs and courses. | `common-db` |
 
-1.  **Auth Service (Port 3001):** Responsible for registration, JWT generation, user roles, profile data, and physical avatar uploads.
-2.  **Course Service (Port 3002):** Responsible for fetching discovery catalogs, handling direct messaging arrays, notification read-states, and serving heavy media chunks for the Shorts video feed.
-3.  **Database Layer (Postgres:5432):** Shared database accessed by both services strictly localized via Docker volumes.
+---
 
-*Note: The frontend Flutter application utilizes a dynamic `UrlHelper` to reliably map internal relative paths (`/uploads/shorts/...`) from both independent backend service ports to the host's physical IP address.*
+## 🛠 Infrastructure & DevOps Integration
 
-## 🚀 Getting Started
-
-### Prerequisites
-*   [Flutter SDK](https://docs.flutter.dev/get-started/install)
-*   [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-*   Node.js & npm (for local backend debugging)
-
-### 1. Launch the Backend Infrastructure
-Navigate into the backend project folder and utilize `docker-compose` to spin up the PostgreSQL database and both microservices simultaneously.
+### 1. Docker Compose Deployment
+To launch the complete microservices stack locally or on a production VPS:
 ```bash
 cd backend
 docker-compose up -d --build
 ```
-*The Auth Service will run on `http://localhost:3001` and the Course Service on `http://localhost:3002`.*
 
-### 2. Configure the Frontend IP
-Since Flutter physical devices cannot resolve `localhost`, you must point the app to your computer's local network IP address.
-*   Open `frontend/lib/services/api_service.dart`.
-*   Update `hostIp` to your active IPv4 Address:
-```dart
-static const String hostIp = '192.168.1.XXX'; 
-```
+### 2. Jenkins CI/CD Pipeline
+The repository includes a `Jenkinsfile` at the root which automates the build-test-deploy workflow:
+*   **Checkout**: Pulls the latest commits from the main branch.
+*   **Dependencies**: Installs Node packages across all package workspaces.
+*   **Unit Tests**: Runs Jest test suites with coverage validation (achieving over 80% coverage).
+*   **Docker Build**: Validates image compilation locally.
+*   **Deploy**: Connects to the production VPS and triggers an automatic restart.
 
-### 3. Run the Mobile Application
-Ensure you have an emulator running or a physical device connected with developer debugging enabled.
+### 3. Ansible IaC Playbooks
+Provision and deploy using the Ansible playbooks under `ansible/playbooks/`:
+*   **Install Dependencies (`install_dependencies.yml`)**: Installs Git, Docker, Docker Compose, and sets up project path folder permissions.
+*   **App Deployment (`deploy_app.yml`)**: Clones the repo, ensures writable storage paths, and restarts services.
 ```bash
-cd frontend
-flutter run
+ansible-playbook -i ansible/hosts.ini ansible/playbooks/install_dependencies.yml
+ansible-playbook -i ansible/hosts.ini ansible/playbooks/deploy_app.yml
 ```
 
-## 🔒 Security Notes
-*   **Cleartext Traffic:** For local development, Android native instances (specifically `video_player`) prohibit unencrypted HTTP streaming. We have explicitly enabled `usesCleartextTraffic="true"` inside `AndroidManifest.xml` to allow raw local testing. Before deploying to production, secure the backend endpoints with SSL/HTTPS and disable this flag.
+### 4. Kubernetes Orchestration
+Manifests are structured inside `k8s/` for production clustering:
+*   **Databases (`databases-k8s.yaml`)**: Sets up PersistentVolumeClaims (PVCs) and deployments for database pods.
+*   **Services (`services-k8s.yaml`)**: Orchestrates the service deployments and cluster service endpoints.
+*   **Gateway (`gateway-k8s.yaml`)**: Maps public entry traffic via NodePort to internal ports.
+```bash
+kubectl apply -f k8s/databases-k8s.yaml
+kubectl apply -f k8s/services-k8s.yaml
+kubectl apply -f k8s/gateway-k8s.yaml
+```
+
+### 5. Prometheus & Grafana Monitoring
+Continuous metric collection is configured under `monitoring/`:
+*   **Prometheus (`prometheus.yml`)**: Scrapes performance statistics across microservices.
+*   **Grafana (`docker-compose.monitoring.yml`)**: Visualizes container health, memory use, and gateway request metrics.
+To spin up monitoring on the VPS:
+```bash
+cd monitoring
+docker-compose -f docker-compose.monitoring.yml up -d
+```
+*   **Prometheus UI**: `http://<vps-ip>:9090`
+*   **Grafana UI**: `http://<vps-ip>:4000` (default login: admin / admin)
+
+---
+
+## 📲 Frontend (Flutter) Client Setup
+
+1.  Ensure you have the Flutter SDK installed.
+2.  Open `frontend/lib/utils/auth_helper.dart` and verify the configured Google Client ID.
+3.  Install dependencies and launch the app:
+    ```bash
+    cd frontend
+    flutter pub get
+    flutter run
+    ```
+
+---
+
+## ⚡ API Documentation
+
+All APIs are routed through the Gateway at `http://167.86.100.54:3000`.
+
+### 🔑 Authentication (`identity-service`)
+*   `POST /api/auth/register`: Register new user credentials.
+*   `POST /api/auth/login`: Authenticate existing credentials and return JWT.
+*   `POST /api/auth/google-login`: Sign in using Google OAuth 2.0 Identity Token.
+
+### 📚 Blog Service (`blog-service`)
+*   `GET /api/blogs`: Get all chronologically ordered blog posts.
+*   `GET /api/blogs/:id`: Get a specific blog post details.
+*   `POST /api/blogs`: Create a blog post (calculates reading time automatically).
+*   `POST /api/blogs/upload`: Upload multipart blog cover images.
+
+### 💳 Payment Service (`payment-service`)
+*   `POST /api/payments/checkout`: Create a checkout invoice with 10% tax.
+*   `POST /api/payments/authorize`: Authorize USSD PIN simulation.
+
+---
+
+## 👥 User Onboarding Guide
+
+### 1. Welcome & Onboarding
+New users undergo a 3-page slideshow introduction outlining skill discovery, peer interaction, and secure payments.
+
+### 2. Role Selection
+*   **Students**: Access standard dashboards to search courses, pay using Mobile Money, stream lessons, and message instructors.
+*   **Tutors**: Gain writing privileges to the Knowledge Blog, metrics views, and can upload courses and Shorts.
+*   **Admins**: Special roles with entry-moderation, verification checks, and backend settings toggle.

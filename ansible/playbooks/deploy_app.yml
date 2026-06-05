@@ -21,6 +21,12 @@
         state: directory
         mode: '0777'
 
+    - name: Ensure blog-service uploads folder has write permissions
+      file:
+        path: /opt/skillprof/backend/blog-service/uploads/blogs
+        state: directory
+        mode: '0777'
+
     - name: Pull and launch containers using docker-compose
       shell: |
         cd /opt/skillprof/backend
