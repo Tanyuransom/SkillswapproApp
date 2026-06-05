@@ -14,6 +14,15 @@ export class Verification {
   @Column({ nullable: true })
   idNumber?: string;
 
+  @Column({ nullable: true })
+  specialization?: string;
+
+  @Column({ type: "int", default: 0 })
+  score!: number;
+
+  @Column({ type: "int", default: 5 })
+  totalQuestions!: number;
+
   @CreateDateColumn()
   createdAt!: Date;
 }

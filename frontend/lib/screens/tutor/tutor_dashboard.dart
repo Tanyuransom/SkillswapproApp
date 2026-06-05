@@ -8,6 +8,7 @@ import '../messaging/chat_screen.dart';
 import '../messaging/inbox_screen.dart';
 import '../../utils/url_helper.dart';
 import 'my_courses_screen.dart';
+import 'exam_screen.dart';
 
 class TutorDashboard extends StatefulWidget {
   const TutorDashboard({super.key});
@@ -21,6 +22,7 @@ class _TutorDashboardState extends State<TutorDashboard> {
   List<dynamic> _courses = [];
   List<dynamic> _notifications = [];
   bool _isLoading = false;
+  bool _isVerified = false;
   int _activeStudentCount = 0;
   int _courseCount = 0;
   int _earnings = 0;
@@ -62,8 +64,24 @@ class _TutorDashboardState extends State<TutorDashboard> {
       _fetchCourses(),
       _fetchNotifications(),
       _fetchStats(),
+      _fetchVerificationStatus(),
     ]);
     if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _fetchVerificationStatus() async {
+    final tutorId = SessionService().userId;
+    if (tutorId == null) return;
+    try {
+      final result = await ApiService.getVerificationStatus(tutorId);
+      if (mounted) {
+        setState(() {
+          _isVerified = result['verified'] ?? false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching verification status: $e");
+    }
   }
 
   Future<void> _fetchStats() async {
@@ -149,7 +167,7 @@ class _TutorDashboardState extends State<TutorDashboard> {
           ),
           IconButton(
             icon: const Icon(Icons.add_a_photo_rounded, color: AppTheme.primaryPurple),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UploadCourseScreen())).then((_) => _refreshAll()),
+            onPressed: () => _handleUploadCourseAction(),
           ),
         ],
       ),
@@ -164,6 +182,11 @@ class _TutorDashboardState extends State<TutorDashboard> {
               // --- NEW PROFILE HEADER ---
               _buildProfileHeader(session),
               const SizedBox(height: 24),
+
+              if (!_isVerified) ...[
+                _buildUnverifiedBanner(session.specialization ?? "SEN"),
+                const SizedBox(height: 24),
+              ],
               
               // --- INTEGRATED STATS ---
               _buildStatBanner(),
@@ -175,7 +198,7 @@ class _TutorDashboardState extends State<TutorDashboard> {
                 children: [
                   _buildActionCard('My Courses', Icons.collections_bookmark_rounded, AppTheme.primaryPurple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyCoursesScreen())).then((_) => _refreshAll())),
                   const SizedBox(width: 12),
-                  _buildActionCard('New Short', Icons.video_call, AppTheme.secondaryOrange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UploadShortScreen())).then((_) => _refreshAll())),
+                  _buildActionCard('New Short', Icons.video_call, AppTheme.secondaryOrange, () => _handleNewShortAction()),
                   const SizedBox(width: 12),
                   _buildActionCard('Messages', Icons.message_rounded, AppTheme.accentYellow, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InboxScreen())).then((_) => _refreshAll())),
                 ],
@@ -222,15 +245,16 @@ class _TutorDashboardState extends State<TutorDashboard> {
                       : const AssetImage('assets/images/tutor.png'),
                 ),
               ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(color: AppTheme.successGreen, shape: BoxShape.circle),
-                  child: const Icon(Icons.check, size: 12, color: Colors.white),
-                ),
-              )
+              if (_isVerified)
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(color: AppTheme.successGreen, shape: BoxShape.circle),
+                    child: const Icon(Icons.check, size: 12, color: Colors.white),
+                  ),
+                )
             ],
           ),
           const SizedBox(width: 20),
@@ -404,6 +428,115 @@ class _TutorDashboardState extends State<TutorDashboard> {
         ),
       ),
     ).then((_) => _refreshAll());
+  }
+
+  void _handleUploadCourseAction() {
+    if (!_isVerified) {
+      _showVerificationRequiredDialog("upload courses");
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const UploadCourseScreen())
+    ).then((_) => _refreshAll());
+  }
+
+  void _handleNewShortAction() {
+    if (!_isVerified) {
+      _showVerificationRequiredDialog("upload shorts");
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const UploadShortScreen())
+    ).then((_) => _refreshAll());
+  }
+
+  void _showVerificationRequiredDialog(String actionText) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.gpp_maybe_rounded, color: AppTheme.errorRed, size: 28),
+            SizedBox(width: 12),
+            Text('Verification Required'),
+          ],
+        ),
+        content: Text('You must pass the AI Skill Exam in your specialization (${SessionService().specialization ?? "SEN"}) before you can $actionText.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _startVerificationFlow();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryPurple),
+            child: const Text('TAKE EXAM', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnverifiedBanner(String specialization) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.errorRed.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.gpp_maybe_rounded, color: AppTheme.errorRed, size: 36),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Account Unverified',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.errorRed),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Take the AI Competency Exam in $specialization to verify your skills and enable uploads.',
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: _startVerificationFlow,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorRed,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('VERIFY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _startVerificationFlow() {
+    final specialization = SessionService().specialization ?? "SEN";
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ExamScreen(specialization: specialization),
+      ),
+    ).then((passed) {
+      if (passed == true) {
+        _refreshAll();
+      }
+    });
   }
 }
 

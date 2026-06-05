@@ -345,20 +345,166 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 }
 
-class VerificationQueueScreen extends StatelessWidget {
+class VerificationQueueScreen extends StatefulWidget {
   const VerificationQueueScreen({super.key});
 
   @override
+  State<VerificationQueueScreen> createState() => _VerificationQueueScreenState();
+}
+
+class _VerificationQueueScreenState extends State<VerificationQueueScreen> {
+  List<dynamic> _verifications = [];
+  Map<String, dynamic> _userMap = {};
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final logs = await ApiService.getAllVerifications();
+      final users = await ApiService.getUsers();
+      
+      final Map<String, dynamic> tempUserMap = {};
+      for (var u in users) {
+        if (u['id'] != null) {
+          tempUserMap[u['id']] = u;
+        }
+      }
+
+      setState(() {
+        _verifications = logs;
+        _userMap = tempUserMap;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Scaffold(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "AI Exam Attempts (${_verifications.length})",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _loadData,
+                )
+              ],
+            ),
+          ),
+          const Divider(),
+          Expanded(
+            child: _verifications.isEmpty
+                ? _buildEmptyState()
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    itemCount: _verifications.length,
+                    itemBuilder: (context, index) {
+                      final log = _verifications[index];
+                      final tutorId = log['tutorId'] ?? '';
+                      final user = _userMap[tutorId];
+                      final name = user != null ? user['fullName'] : 'Unknown Tutor';
+                      final email = user != null ? user['email'] : 'N/A';
+                      
+                      final spec = log['specialization'] ?? 'GEN';
+                      final score = log['score'] ?? 0;
+                      final total = log['totalQuestions'] ?? 5;
+                      final status = log['status'] ?? 'pending';
+                      final dateStr = log['createdAt'] != null 
+                          ? DateTime.parse(log['createdAt']).toLocal().toString().substring(0, 16)
+                          : 'N/A';
+                          
+                      final bool isPass = status == 'passed';
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            )
+                          ]
+                        ),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: isPass ? AppTheme.successGreen.withValues(alpha: 0.1) : AppTheme.errorRed.withValues(alpha: 0.1),
+                            child: Icon(
+                              isPass ? Icons.verified_user_rounded : Icons.gpp_bad_rounded,
+                              color: isPass ? AppTheme.successGreen : AppTheme.errorRed,
+                            ),
+                          ),
+                          title: Text(
+                            name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Email: $email'),
+                              const SizedBox(height: 2),
+                              Text('Exam: $spec • Score: $score/$total • Date: $dateStr', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                            ],
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: (isPass ? AppTheme.successGreen : AppTheme.errorRed).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              status.toUpperCase(),
+                              style: TextStyle(
+                                color: isPass ? AppTheme.successGreen : AppTheme.errorRed,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.pending_actions_rounded, size: 100, color: AppTheme.secondaryOrange),
+          const Icon(Icons.history_rounded, size: 64, color: Colors.grey),
           const SizedBox(height: 16),
-          Text('No Pending Verifications', style: Theme.of(context).textTheme.displayMedium?.copyWith(fontSize: 18)),
+          const Text('No exam logs found.', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
-          const Text('Tutor application queue is currently empty.', style: TextStyle(color: Colors.grey)),
+          const Text('Exam verification records will appear here.', style: TextStyle(color: Colors.grey, fontSize: 13)),
         ],
       ),
     );

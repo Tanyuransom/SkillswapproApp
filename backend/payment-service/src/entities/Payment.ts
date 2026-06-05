@@ -14,6 +14,18 @@ export class Payment {
   @Column("decimal")
   amount!: number;
 
+  @Column({ nullable: true })
+  method?: string;
+
+  @Column("decimal", { default: 0 })
+  tax!: number;
+
+  @Column("decimal", { default: 0 })
+  total!: number;
+
+  @Column({ nullable: true })
+  phoneNumber?: string;
+
   @Column({ default: "pending" })
   status!: string;
 

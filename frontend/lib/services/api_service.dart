@@ -980,5 +980,279 @@ class ApiService {
       throw Exception('Version check error: ${e.toString()}');
     }
   }
+
+  // --- VERIFICATION & EXAMS (Verification Service) ---
+  static Future<Map<String, dynamic>> getVerificationStatus(String tutorId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/verification/status/$tutorId'),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {'verified': false, 'status': 'none'};
+    } catch (e) {
+      return {'verified': false, 'status': 'none', 'error': e.toString()};
+    }
+  }
+
+  static Future<List<dynamic>> generateExam({
+    required String tutorId,
+    required String specialization,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/verification/exam/generate'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'tutorId': tutorId,
+          'specialization': specialization,
+        }),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw Exception('Failed to generate exam: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Exam Generation Error: ${e.toString()}');
+    }
+  }
+
+  static Future<Map<String, dynamic>> submitExam({
+    required String tutorId,
+    required String specialization,
+    required Map<String, String> answers,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/verification/exam/submit'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'tutorId': tutorId,
+          'specialization': specialization,
+          'answers': answers,
+        }),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw Exception('Failed to submit exam: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Exam Submission Error: ${e.toString()}');
+    }
+  }
+
+  static Future<List<dynamic>> getAllVerifications() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/verification/admin/all'),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // --- PAYMENTS (Payment Service) ---
+  static Future<Map<String, dynamic>> createPayment({
+    required String userId,
+    required String courseId,
+    required double amount,
+    required String method,
+    required String phoneNumber,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/payments/checkout'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'courseId': courseId,
+          'amount': amount,
+          'method': method,
+          'phoneNumber': phoneNumber,
+        }),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw Exception('Payment checkout initiation failed: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Payment Checkout Error: ${e.toString()}');
+    }
+  }
+
+  static Future<Map<String, dynamic>> authorizePayment({
+    required String paymentId,
+    required String pin,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/payments/authorize'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'paymentId': paymentId,
+          'pin': pin,
+        }),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw Exception('Payment authorization failed: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Payment Authorization Error: ${e.toString()}');
+    }
+  }
+
+  static Future<List<dynamic>> getUserPayments(String userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/payments/user/$userId'),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // --- BLOGS (Blog Service) ---
+  static Future<List<dynamic>> getBlogs() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/blogs')).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      print('GetBlogs Error: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getBlogById(String id) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/blogs/$id')).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('GetBlogById Error: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>> createBlog({
+    required String title,
+    required String content,
+    required String authorId,
+    required String authorName,
+    String? authorAvatarUrl,
+    String? imageUrl,
+    String? category,
+    String? readTime,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/blogs'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': title,
+          'content': content,
+          'authorId': authorId,
+          'authorName': authorName,
+          'authorAvatarUrl': authorAvatarUrl,
+          'imageUrl': imageUrl,
+          'category': category,
+          'readTime': readTime,
+        }),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw Exception('Failed to create blog: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('CreateBlog Error: ${e.toString()}');
+    }
+  }
+
+  static Future<String> uploadBlogImage(String filePath) async {
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/blogs/upload'));
+      request.files.add(await http.MultipartFile.fromPath('image', filePath));
+      var response = await request.send().timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var json = jsonDecode(responseData);
+        return json['url'];
+      }
+      throw Exception('Upload image failed');
+    } catch (e) {
+      throw Exception('UploadBlogImage Error: ${e.toString()}');
+    }
+  }
+
+  // --- COMMENTS (Comment Service) ---
+  static Future<List<dynamic>> getComments(String targetId, String targetType) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/comments?targetId=$targetId&targetType=$targetType'),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      print('GetComments Error: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> addComment({
+    required String userId,
+    required String userName,
+    required String targetId,
+    required String targetType,
+    required String text,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/comments'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'userName': userName,
+          'targetId': targetId,
+          'targetType': targetType,
+          'text': text,
+        }),
+      ).timeout(timeoutDuration);
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw Exception('Failed to add comment: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('AddComment Error: ${e.toString()}');
+    }
+  }
+
+  static Future<bool> deleteComment(String id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/comments/$id'),
+      ).timeout(timeoutDuration);
+      return response.statusCode == 200;
+    } catch (e) {
+      print('DeleteComment Error: $e');
+      return false;
+    }
+  }
 }
+
 

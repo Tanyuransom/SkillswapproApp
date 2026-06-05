@@ -7,6 +7,7 @@ import '../../utils/url_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
 import '../course/course_video_player.dart';
+import '../course/checkout_screen.dart';
 
 class CourseDetailScreen extends StatefulWidget {
   final Map<String, dynamic> course;
@@ -468,6 +469,20 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
               };
             } else {
               return () async {
+                final double priceVal = double.tryParse(course['price']?.toString() ?? '0') ?? 0.0;
+                if (priceVal > 0) {
+                  final checkoutSuccess = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CheckoutScreen(course: course),
+                    ),
+                  );
+                  if (checkoutSuccess == true) {
+                    _checkEnrollment();
+                  }
+                  return;
+                }
+
                 try {
                   await ApiService.enrollCourse(
                     courseId: course['id'] ?? '',

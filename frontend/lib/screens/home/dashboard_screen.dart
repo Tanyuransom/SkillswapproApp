@@ -290,12 +290,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.logout_rounded, color: AppTheme.errorRed),
-          onPressed: () {
-            _showLogoutReviewDialog(session.fullName ?? "User");
-          },
-          tooltip: 'Log Out',
+        leadingWidth: 95,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12.0),
+          child: TextButton.icon(
+            onPressed: () {
+              _showLogoutReviewDialog(session.fullName ?? "User");
+            },
+            icon: const Icon(Icons.logout_rounded, color: AppTheme.errorRed, size: 16),
+            label: const Text(
+              'Logout',
+              style: TextStyle(
+                color: AppTheme.errorRed,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              alignment: Alignment.centerLeft,
+            ),
+          ),
         ),
         title: const Text('SkillProf Platform'),
         actions: [
