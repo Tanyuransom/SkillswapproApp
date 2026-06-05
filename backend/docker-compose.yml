@@ -93,7 +93,7 @@ services:
       - PORT=3001
       - DATABASE_URL=postgres://skilluser:skillpassword@auth-db:5432/identity_db
       - JWT_SECRET=yoursecretkey
-      - GOOGLE_CLIENT_ID=858897578892-incp36sui82b19181ae1jneino99eudd.apps.googleusercontent.com
+      - GOOGLE_CLIENT_ID=103593137684-3uitoc6guj875oiks3r89s5i0kbp19oh.apps.googleusercontent.com
     depends_on: [auth-db]
     init: true
     restart: always
@@ -106,7 +106,7 @@ services:
       - PORT=3003
       - DATABASE_URL=postgres://skilluser:skillpassword@user-db:5432/user_db
       - JWT_SECRET=yoursecretkey
-      - GOOGLE_CLIENT_ID=858897578892-incp36sui82b19181ae1jneino99eudd.apps.googleusercontent.com
+      - GOOGLE_CLIENT_ID=103593137684-3uitoc6guj875oiks3r89s5i0kbp19oh.apps.googleusercontent.com
     volumes: ["./user-service/uploads:/app/uploads"]
     depends_on: [user-db]
     init: true
@@ -121,7 +121,7 @@ services:
       - PORT=3002
       - DATABASE_URL=postgres://skilluser:skillpassword@course-db:5432/course_db
       - JWT_SECRET=yoursecretkey
-      - GOOGLE_CLIENT_ID=858897578892-incp36sui82b19181ae1jneino99eudd.apps.googleusercontent.com
+      - GOOGLE_CLIENT_ID=103593137684-3uitoc6guj875oiks3r89s5i0kbp19oh.apps.googleusercontent.com
     volumes: ["./course-service/uploads:/app/uploads"]
     depends_on: [course-db]
     init: true
