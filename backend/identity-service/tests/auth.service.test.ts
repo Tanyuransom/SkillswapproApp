@@ -5,11 +5,45 @@ import * as bcrypt from "bcryptjs";
 import * as jwt from "jsonwebtoken";
 import * as http from "http";
 
+const mockHash = jest.fn();
+const mockCompare = jest.fn();
+
 jest.mock("../src/data-source", () => ({
   AppDataSource: {
     getRepository: jest.fn()
   }
 }));
+
+jest.mock("bcryptjs", () => ({
+  __esModule: true,
+  hash: (pwd: string, salt: any) => mockHash(pwd, salt),
+  compare: (pwd: string, hash: string) => mockCompare(pwd, hash),
+  default: {
+    hash: (pwd: string, salt: any) => mockHash(pwd, salt),
+    compare: (pwd: string, hash: string) => mockCompare(pwd, hash)
+  }
+}));
+
+jest.mock("google-auth-library", () => {
+  const mockTicket = {
+    getPayload: jest.fn().mockReturnValue({
+      email: "tanyuransom339@gmail.com",
+      name: "Tanyu Ransom",
+      picture: "http://example.com/avatar.jpg"
+    })
+  };
+  const mockClient = {
+    verifyIdToken: jest.fn().mockImplementation(async ({ idToken }) => {
+      if (idToken === "invalid-real-token") {
+        throw new Error("Invalid Google token");
+      }
+      return mockTicket;
+    })
+  };
+  return {
+    OAuth2Client: jest.fn().mockImplementation(() => mockClient)
+  };
+});
 
 jest.mock("http", () => {
   const mockReq = {
@@ -31,6 +65,8 @@ describe("AuthService Unit Tests", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockHash.mockImplementation(async (pwd: string) => `hash-${pwd}`);
+    mockCompare.mockImplementation(async (pwd: string, hash: string) => pwd !== "wrongpassword");
     mockRepository = {
       findOneBy: jest.fn(),
       create: jest.fn(),
