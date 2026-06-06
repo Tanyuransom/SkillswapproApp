@@ -537,7 +537,7 @@ We verified Gateway proxy routing by sending queries directly to the public Node
     {
       "versionCode": 3,
       "versionName": "1.0.2",
-      "url": "http://167.86.100.54:3000/api/download/apk"
+      "url": "http://167.86.100.54:30000/api/download/apk"
     }
     ```
 
