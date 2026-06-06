@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_REGISTRY = 'registry.hub.docker.com'
+        DOCKER_REGISTRY = 'https://index.docker.io/v1/'
         DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
         VPS_SSH_CREDENTIALS_ID = 'vps-ssh-credentials'
         VPS_HOST = '167.86.100.54'
