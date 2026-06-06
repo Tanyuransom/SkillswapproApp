@@ -1,0 +1,210 @@
+
+--- Page 1 ---
+ 
+ 
+FACULTY OF INFORMATION AND COMMUNICATION TECHNOLOGIES 
+SPRING 2026 
+  FINAL EXAMINATION 
+COURSE TITLE : SOFTWARE ARCHITECTURE  
+COURSE CODE : SEN3244  
+INSTRUCTOR : Engr. TEKOH PALMA  
+DATE: 1st Week after Spring Written Exams 2026 
+DURATION:   8 Weeks 
+ 
+Project specification: 
+Project Presentation Period: 1st Week after Spring Written Exams 2026  
+ 
+Instructions:  
+You are required to design and implement an innovative Architectural solution for 
+software project  of your choice, either individually or in a team (max 4 members). 
+Your project should solve a real-world problem and must incorporate all the sections 
+below. Marks are allocated based on the completeness, originality, technical depth, 
+and correct use of architectural principles and tools. 
+1. Infrastructure Setup (15 Marks) 
+Acquire, set up and configure the necessary VPS infrastructure to deploy your 
+application: 
+ Provision cloud/on-premise resources. 
+ Install all necessary technologies to support your project development. 
+ Configure networking, firewall rules, reverse proxies, etc. 
+ Use Docker, Kubernetes or any other relevant environment tools. 
+Deliverables:  
+ Infrastructure diagram 
+
+--- Page 2 ---
+ Terraform/Bash scripts (optional but appreciated) 
+ Screenshots and links showing infrastructure deployment 
+ 
+2. Application of Scrum (5 Marks) 
+Demonstrate the application of Agile practices in your project: 
+ Identify roles: Product Owner, Scrum Master, Team 
+ Maintain a product backlog and sprint backlog 
+ Include a burndown chart for at least 2 sprints 
+Deliverables:  
+ Document showing your scrum roles, sprint planning, and retrospectives 
+ Screenshots from tools like Jira, Trello, or GitHub Projects (if applicable) 
+ 
+3. CI/CD Pipeline with Jenkins (10 Marks) 
+Implement a CI/CD pipeline using Jenkins: 
+ Automate build, test, and deployment stages 
+ Integrate your source control (e.g., GitHub/GitLab) 
+Deliverables:  
+ Jenkinsfile 
+ Screenshots or demo video of Jenkins pipeline runs 
+ Explanation of the pipeline stages 
+4. Continuous Monitoring with Prometheus and Grafana (2.5 Marks) 
+Set up platform and application monitoring: 
+ Export Metrices from your Platform and your Application 
+ Visualize and alert using Prometheus and Grafana 
+Deliverables:  
+ Dashboard screenshots 
+ Explanation of key metrics being monitored 
+ 
+--- Page 3 ---
+5. Infrastructure as Code with Ansible (2.5 Marks) 
+Provision and configure part of your infrastructure using Ansible: 
+ Include at least 2 playbooks (e.g., install packages, start services) 
+Deliverables:  
+ Ansible playbooks 
+ Execution logs/screenshots 
+6. Robust Testing of Application (10 Marks) 
+Implement testing at different levels: 
+ Unit tests, Integration tests, and optionally E2E tests 
+ Achieve minimum 80% code coverage 
+Deliverables:  
+ Test results and coverage report 
+ Sample test cases and automation scripts 
+ 
+7. Containerization and Orchestration with Kubernetes (15 Marks) 
+Deploy your application using Kubernetes: 
+ Containerize with Docker 
+ Deploy with Kubernetes manifests or Helm charts 
+ Implement scaling, rolling updates, and service discovery 
+Deliverables:  
+ Dockerfiles 
+ Kubernetes YAMLs or Helm chart 
+ Screenshots or recordings of Kubernetes dashboard or CLI output 
+ 
+8. Architecture Structures and Characteristics (20 Marks) 
+Demonstrate architectural thinking: 
+ Identify and justify architecture style (e.g., microservices, layered, event-
+driven) 
+--- Page 4 ---
+ Show key architectural structures (component, deployment, module views) 
+ Discuss trade-offs and quality attributes (e.g., performance, scalability, 
+security). 
+ Pros and Cons of chosen Architecture 
+Deliverables:  
+ Architecture document with diagrams (UML encouraged) 
+ A report showing all the steps of the Architectural design process as 
+discussed during the course. 
+ 
+9. Project Innovation (10 Marks) 
+Show originality and creativity in your project: 
+ Use of emerging tech (e.g., AI, blockchain, AR) 
+ Unique business logic or compelling user experience 
+Deliverables:  
+ Description of innovation aspect 
+ Demo video or screenshots highlighting innovation 
+ 
+10. Project Documentation (15 Marks) 
+Provide comprehensive documentation: 
+ README (setup, usage, contribution guidelines) on Github Repo 
+ API documentation (Swagger/Postman preferred) 
+ User manual or onboarding guide 
+ Project Report Template 
+Deliverables:  
+ Repository with complete documentation 
+ Link to hosted Swagger or Postman collection (if API-based) 
+ 
+ 
+--- Page 5 ---
+NB: Project Reports should follow the template below deliverables such as images 
+and descriptions should be included in the report. 
+ 
+ 
+PROJECT REPORT TEMPLATE  
+ 
+Course Code/Course  Title  
+Group Number   
+Project Topic   
+Link to GitHub Repository  
+Group Leader  
+ 
+Group Information  
+ 
+SN Member’s Name Registration Number Team Role 
+1    
+2    
+3    
+4    
+ 
+Note: 
+ 
+- The following format at minimum must be used for the Project 
+Presentation (This is just a guide but you are not limited to it, you are 
+allowed to expand it further) 
+CHAPTER ONE: INTRODUCTION 
+ 
+ General Introduction 
+ 
+ Aim and Objectives 
+ 
+ Problem Statement 
+ 
+ 
+CHAPTER TWO: LITERATURE REVIEW 
+ 
+ Software Development Methodologies 
+ 
+ Comparison between different Software Development Methodologies 
+--- Page 6 ---
+ 
+ Reason for the choice of Scrum Methodology 
+ 
+ General review of related concepts with respect to your chosen project 
+ 
+ Review of related literature with respect to your chosen project 
+ 
+ 
+CHAPTER THREE: METHODOLOGY AND MATERIALS 
+ 
+ Research Methodology 
+ System Requirements (Functional and Non-Functional) 
+ System Design  
+• Architecture of your system (HLD) 
+• UML Diagrams  
+ Application of scrum  
+• Team organization 
+• Workflow management 
+• Conflict Resolution 
+• Challenges encounter and how you overcame them 
+ Scrum Artifacts (Product backlog and Sprint backlog) 
+ A Test Case document 
+ Proposed Algorithms  
+ Materials and technologies used (briefly list the name of the 
+technology or material and its role in realizing your system) 
+CHAPTER THREE: RESULTS AND DISCUSSIONS 
+ Screenshots of various application scenarios 
+ Screenshots of various API Request/Response 
+ Etc.. 
+ 
+ 
+CHAPTER FOUR:  RECOMMENDATIONS AND CONCLUSION 
+In not more than 3 paragraphs summarize what your team has been able to achieve, 
+the difficulties you encountered and recommendation for further studies 
+--- Page 7 ---
+ 
+Submission Guidelines 
+Students are expected to submit the following artifacts. 
+- A printed Report (Word or Latex) which follows strictly the Report 
+template provide above. 
+- Include a 7-minute video walkthrough of your project 
+- PowerPoint slide (not more than 20slides) 
+- .ZIP Project folder containing all the deliverables (source code, 
+configuration files etc). 
+Important to Know 
+ The link to the submission form will be provided by the lecturer 
+ Submission deadline: The 1st Week After Spring written Exams  
+ Late submission penalty: Will be Evaluated on 60%  
+ 
+ 
