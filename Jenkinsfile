@@ -35,29 +35,55 @@ pipeline {
             }
         }
 
-        stage('Build Docker Images') {
+        stage('Build Project') {
             steps {
-                echo 'Building production Docker images...'
+                echo 'Compiling project source files...'
                 dir('backend') {
-                    sh 'docker build -t skillprof-gateway-service:latest ./gateway-service'
-                    sh 'docker build -t skillprof-identity-service:latest ./identity-service'
-                    sh 'docker build -t skillprof-user-service:latest ./user-service'
-                    sh 'docker build -t skillprof-course-service:latest ./course-service'
+                    sh 'npm run build --workspaces --if-present'
                 }
             }
         }
 
-        stage('Deploy to Production (VPS)') {
+        stage('Build Docker Images') {
             steps {
-                echo 'Deploying application to VPS...'
+                echo 'Building production Docker images...'
+                dir('backend') {
+                    sh 'docker build -t tanyuransom/skillprof-gateway-service:latest ./gateway-service'
+                    sh 'docker build -t tanyuransom/skillprof-identity-service:latest ./identity-service'
+                    sh 'docker build -t tanyuransom/skillprof-user-service:latest ./user-service'
+                    sh 'docker build -t tanyuransom/skillprof-course-service:latest ./course-service'
+                }
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                echo 'Pushing Docker images to Docker Hub...'
+                withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    sh "docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD} ${DOCKER_REGISTRY}"
+                    sh "docker push tanyuransom/skillprof-gateway-service:latest"
+                    sh "docker push tanyuransom/skillprof-identity-service:latest"
+                    sh "docker push tanyuransom/skillprof-user-service:latest"
+                    sh "docker push tanyuransom/skillprof-course-service:latest"
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes (VPS)') {
+            steps {
+                echo 'Deploying application to Kubernetes on VPS...'
                 sshagent([VPS_SSH_CREDENTIALS_ID]) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "
                             cd /opt/skillprof &&
                             git pull origin main &&
-                            cd backend &&
-                            docker-compose down &&
-                            docker-compose up -d --build
+                            kubectl apply -f k8s/databases-k8s.yaml &&
+                            kubectl apply -f k8s/services-k8s.yaml &&
+                            kubectl apply -f k8s/gateway-k8s.yaml &&
+                            kubectl rollout restart deployment/gateway-service &&
+                            kubectl rollout restart deployment/identity-service &&
+                            kubectl rollout restart deployment/user-service &&
+                            kubectl rollout restart deployment/course-service
                         "
                     '''
                 }
@@ -67,7 +93,7 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline successfully executed! All builds and tests passed, and deployment is complete.'
+            echo 'Pipeline successfully executed! All builds, tests, pushes, and Kubernetes deployments are complete.'
         }
         failure {
             echo 'Pipeline execution failed. Please check build logs for errors.'

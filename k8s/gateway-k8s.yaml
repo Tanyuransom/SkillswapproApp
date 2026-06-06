@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
         - name: gateway-service
-          image: skillprof-gateway-service:latest
-          imagePullPolicy: Never
+          image: tanyuransom/skillprof-gateway-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           env:
