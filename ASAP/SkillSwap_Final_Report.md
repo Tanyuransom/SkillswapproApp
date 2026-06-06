@@ -74,6 +74,12 @@ The comparison of these methodologies is summarized in the table below:
 * **Jenkins**: An extensible automation server used to compile code, run tests, and deploy builds automatically via pipeline scripts (`Jenkinsfile`).
 * **Prometheus & Grafana**: Prometheus is a time-series database that scrapes HTTP metrics endpoints from services. Grafana is a dashboard tool that visualizes these metrics in real-time.
 
+### 2.5 Review of Related Literature
+To position SkillSwap Pro within the current landscape of educational technology, we reviewed similar applications and architectures:
+*   **Udemy**: A centralized, monolithic e-learning marketplace. While Udemy offers robust course cataloging and payment routing, it relies on a rigid, single-role account layout (users must maintain separate student and instructor accounts). Additionally, its monolithic structure makes it vulnerable to cascading failures; a bug in its course review service can impact the checkout gateway.
+*   **Coursera**: An enterprise-grade, institution-driven learning management platform. Coursera's content delivery model is highly centralized, with no native support for peer-to-peer knowledge swapping or custom billing. Its payment architecture does not natively support local West/Central African mobile money networks, requiring third-party integrations that result in high transaction latency.
+*   **SkillSwap Pro Advantages**: By employing a decoupled microservices design, SkillSwap Pro achieves independent scalability and high resilience (for example, a database crash in the `comment-service` has no impact on user authentication). It introduces a dynamic user role toggle that allows a single account to act as both student and tutor, and integrates localized Cameroon USSD Mobile Money (MTN MoMo and Orange Money) directly into the core `payment-service`.
+
 ---
 
 ## CHAPTER THREE: METHODOLOGY AND MATERIALS
@@ -404,6 +410,16 @@ We divided development into **3 distinct, time-boxed Sprints**:
 2. **Challenge**: Memory starvation of services when running 12 Node.js containers in Docker.
    - *Resolution*: Defined resource boundaries (`cpu: "500m"`, `memory: "512Mi"`) in our Kubernetes deployments and container parameters.
 
+#### 3.5.1 Scrum Tracking & Burndown Visuals
+To visualize sprint progress and ensure high execution velocity, the team utilized Trello boards to track tasks and updated ideal-vs-actual burndown charts daily.
+
+*   **Trello active sprint board tracking**:
+    ![Trello Sprint Board](../WhatsApp%20Image%202026-06-05%20at%207.00.42%20AM.jpeg)
+*   **Sprint 1 Burndown Chart (13 Story Points)**:
+    ![Sprint 1 Burndown](../Architectural%20disigns/sprint_1_burndown.png)
+*   **Sprint 2 Burndown Chart (21 Story Points)**:
+    ![Sprint 2 Burndown](../Architectural%20disigns/sprint_2_burndown.png)
+
 ---
 
 ### 3.6 Scrum Artifacts (Product Backlog)
@@ -464,44 +480,83 @@ function calculateReadingTime(content: string): number {
 
 ## CHAPTER FOUR: RESULTS AND DISCUSSIONS
 
-### 4.1 Containerization with Docker Compose
-We containerized our environment using a multi-service configuration in `docker-compose.yml`. Each core domain runs in its own process, exposing specific ports to prevent resource deadlocks:
-* API Gateway: Port `3000`
-* Identity Service: Port `3001`
-* Course Service: Port `3002`
-* User Service: Port `3003`
-
-Database instances (`skillprof-auth-db`, `skillprof-user-db`, `skillprof-course-db`) persist data independently into separate Docker volumes.
+### 4.1 Containerization and Kubernetes Deployment
+We containerized all Express.js microservices and deployed them onto the Rancher K3s Kubernetes cluster on our production VPS (`167.86.100.54`).
+*   **Kubernetes Pod Status**:
+    All microservice deployments are healthy, fully scaled, and communicating within the internal virtual network:
+    ```bash
+    NAME                                READY   STATUS    RESTARTS   IP           NODE
+    course-db-68794866bf-kqxgd          1/1     Running   0          10.42.0.21   vmi3297412
+    course-service-6b54cd79cb-574lq     1/1     Running   2          10.42.0.20   vmi3297412
+    gateway-service-6d7dc78f57-56bbt    1/1     Running   0          10.42.0.24   vmi3297412
+    gateway-service-6d7dc78f57-rcf7s    1/1     Running   0          10.42.0.17   vmi3297412
+    identity-db-79bcbcc994-fm22m        1/1     Running   0          10.42.0.23   vmi3297412
+    identity-service-56bd69b58f-mxw6c   1/1     Running   2          10.42.0.18   vmi3297412
+    user-db-867bc65799-2p9c7            1/1     Running   0          10.42.0.22   vmi3297412
+    user-service-7c67c8fb47-wnfm8       1/1     Running   2          10.42.0.19   vmi3297412
+    ```
+*   **Persistent Storage Volume Mapping**: Databases persist data independently using K3s `local-path-provisioner` PVCs.
 
 ---
 
 ### 4.2 CI/CD Jenkins Pipeline Results
-Our `Jenkinsfile` successfully automates the deployment lifecycle:
-1. **Checkout**: Automatically pulls code from GitHub.
-2. **Install Dependencies**: Runs `npm install --workspaces` in the backend workspace.
-3. **Run Tests**: Runs `npm run test` across tested microservices.
-4. **Build Docker**: Compiles Docker images for each service.
-5. **Deploy**: SSH-agents to our VPS, pulls changes, and triggers `docker-compose up -d --build`.
+Our restructured `Jenkinsfile` securely integrates with the VPS host system using Jenkins Credentials binding. Build #14 completed successfully:
+1.  **Checkout**: Pulled commit `09cfab1` containing the Docker registry fix.
+2.  **Run Tests**: Ran unit tests on the host system to bypass mock isolation errors. All Jest suites passed with **88.23%** coverage.
+3.  **Build Docker**: Packaged four microservice images using optimized multi-stage build caching.
+4.  **Push Docker**: Successfully logged into Docker Hub registry (`https://index.docker.io/v1/`) and pushed the images.
+5.  **Deploy**: Executed kubectl rolling deployments (`kubectl rollout restart`), achieving zero-downtime updates.
 
 ---
 
 ### 4.3 Continuous Monitoring Setup (Prometheus & Grafana)
-We configured platform monitoring inside `monitoring/`:
-* **Prometheus**: Configured to scrape metrics from the API Gateway and service processes at 15-second intervals.
-* **Grafana**: Visualizes container health, memory use, and gateway request rates on port `4000`.
+We configured metrics exporters and monitoring dashboards on the production VPS:
+*   **Prometheus Exporter (Port 9090)**: Collects node engine health, request durations, and memory utilization statistics at 15-second intervals.
+*   **Grafana Dashboards (Port 4000)**: Visualizes memory saturation, active traffic threads, and network throughput using real-time graphical panel dashboards.
+*   **Key Monitored Metrics**:
+    *   `http_requests_total`: Monitored at the Gateway level to detect request volume and error patterns.
+    *   `process_resident_memory_bytes`: Tracked on each microservice to identify memory leaks before they cause container eviction.
+    *   `pg_stat_database_numbackends`: Tracks active connections to PostgreSQL databases to prevent connection starvation.
 
 ---
 
-### 4.4 Infrastructure as Code with Ansible
-We execute two playbooks to manage deployments:
-1. `install_dependencies.yml`: Installs docker, docker-compose, and configures user permissions.
-2. `deploy_app.yml`: Clones the repo to `/opt/skillprof` on the VPS and restarts the containers.
+### 4.4 API Request and Response Verification
+We verified Gateway proxy routing by sending queries directly to the public NodePort:
+
+#### 1. API Gateway Version Check
+*   **Request**: `GET http://167.86.100.54:30000/api/app-version`
+*   **Response (`200 OK`)**:
+    ```json
+    {
+      "versionCode": 3,
+      "versionName": "1.0.2",
+      "url": "http://167.86.100.54:3000/api/download/apk"
+    }
+    ```
+
+#### 2. Identity Service Health Check (Proxied via Gateway)
+*   **Request**: `GET http://167.86.100.54:30000/api/auth/health`
+*   **Response (`200 OK`)**:
+    ```json
+    {
+      "status": "UP (Identity)",
+      "timestamp": "2026-06-06T11:22:11.509Z"
+    }
+    ```
 
 ---
 
-### 4.5 Robust Testing & Coverage Report
+### 4.5 Infrastructure as Code with Ansible
+We successfully executed two playbooks to establish and maintain VPS configuration:
+1.  **`install_dependencies.yml`**: Automates host packaging configuration, system package updates, firewall configurations, and Docker/K3s installations.
+2.  **`deploy_app.yml`**: Clones repository updates directly to `/opt/skillprof` on the host, configures permission trees, and triggers migrations.
+
+---
+
+### 4.6 Robust Testing & Coverage Report
 We ran Jest tests in the `identity-service` directory. Unit testing covers sign-ups, login JWT issuance, and Google login mock integrations:
 ```bash
+PASS  tests/auth.test.ts (13.366 s)
 PASS  tests/auth.service.test.ts
 ✓ should register a new user (154 ms)
 ✓ should authenticate user credentials and return JWT token (120 ms)
@@ -510,11 +565,27 @@ PASS  tests/auth.service.test.ts
 ----------------------|---------|----------|---------|---------|-------------------
 File                  | % Stmts | % Branch | % Paths | % Lines | Uncovered Line #s 
 ----------------------|---------|----------|---------|---------|-------------------
-All files             |    88.4 |       81 |      85 |    88.4 |                   
- auth.service.ts      |    88.4 |       81 |      85 |    88.4 | 45-52             
+All files             |   88.23 |    78.37 |   76.47 |   89.02 |                   
+ auth.service.ts      |   88.77 |    78.37 |   77.77 |   89.58 | 144-153,213,217   
 ----------------------|---------|----------|---------|---------|-------------------
 ```
-Our coverage is **88.4%**, satisfying the exam's 80% coverage mandate.
+Our coverage is **88.23%**, satisfying the exam's 80% coverage mandate.
+
+---
+
+### 4.7 Project Innovation (10 Marks)
+SkillSwap Pro incorporates several original, high-value technical innovations:
+1.  **Dynamic Role-Toggle Architecture**: Bypasses typical rigid account separations. A single user can act as both student and tutor on the same account by swapping UI interfaces and dynamically requesting JWT scopes.
+2.  **Automated Tutor Verification Exam**: Tutors must pass an automated, randomized verification exam before publishing course materials. The `identity-service` generates exam sheets, preventing unqualified users from listing courses.
+3.  **Cameroon Mobile Money Gateway Simulation**: Implements USSD billing simulations natively inside the `payment-service`. It calculates the regional 10% tax automatically, simulates MTN MoMo / Orange Money USSD authorizations, and triggers instant course access callbacks.
+4.  **TikTok-Style Video Learning ("Shorts")**: Uses optimized vertical video playback within the mobile client to deliver bite-sized educational tips, drastically improving user engagement compared to traditional video libraries.
+
+---
+
+### 4.8 Project Documentation & API Collection (15 Marks)
+The repository includes a detailed Markdown setup guide and an interactive Postman API collection for testing:
+*   **GitHub README.md**: Complete setup guides, microservices port mappings, IaC execution steps, and Kubernetes deployment guides.
+*   **Interactive Postman Collection**: Located in the workspace at [SkillSwap_Pro.postman_collection.json](file:///c:/SkillSwapPrro/ASAP/SkillSwap_Pro.postman_collection.json). It maps all core microservice endpoints, includes pre-defined environment variables, and pre-configured JSON request body payloads.
 
 ---
 

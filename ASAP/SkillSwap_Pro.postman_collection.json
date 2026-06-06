@@ -1,0 +1,268 @@
+{
+	"info": {
+		"_postman_id": "8b9e67d2-45cb-46f9-8d19-dc156a0cb309",
+		"name": "SkillSwap Pro API Collection",
+		"description": "API requests for SkillSwap Pro (SkillProf) microservices backend routed through the API Gateway (Port 3000).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "User Registration",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Tanyu Ransom\",\n    \"email\": \"tanyu@skillswapprro.com\",\n    \"password\": \"SecurePassword123\",\n    \"role\": \"student\"\n}"
+						},
+						"url": {
+							"raw": "http://{{GATEWAY_HOST}}:3000/api/auth/register",
+							"protocol": "http",
+							"host": [
+								"{{GATEWAY_HOST}}"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "User Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"tanyu@skillswapprro.com\",\n    \"password\": \"SecurePassword123\"\n}"
+						},
+						"url": {
+							"raw": "http://{{GATEWAY_HOST}}:3000/api/auth/login",
+							"protocol": "http",
+							"host": [
+								"{{GATEWAY_HOST}}"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Google OAuth Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"mock-google-id-token-123\",\n    \"role\": \"tutor\"\n}"
+						},
+						"url": {
+							"raw": "http://{{GATEWAY_HOST}}:3000/api/auth/google-login",
+							"protocol": "http",
+							"host": [
+								"{{GATEWAY_HOST}}"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"auth",
+								"google-login"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Knowledge Blog",
+			"item": [
+				{
+					"name": "Get All Blogs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://{{GATEWAY_HOST}}:3000/api/blogs",
+							"protocol": "http",
+							"host": [
+								"{{GATEWAY_HOST}}"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"blogs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Blog Post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{JWT_TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Architectural Principles of Microservices\",\n    \"content\": \"Microservices architecture structures an application as a collection of loosely coupled services...\",\n    \"authorId\": \"user-123\"\n}"
+						},
+						"url": {
+							"raw": "http://{{GATEWAY_HOST}}:3000/api/blogs",
+							"protocol": "http",
+							"host": [
+								"{{GATEWAY_HOST}}"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"blogs"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payments",
+			"item": [
+				{
+					"name": "Mobile Money Checkout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{JWT_TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"courseId\": \"course-456\",\n    \"amount\": 5000.0,\n    \"method\": \"MTN\"\n}"
+						},
+						"url": {
+							"raw": "http://{{GATEWAY_HOST}}:3000/api/payments/checkout",
+							"protocol": "http",
+							"host": [
+								"{{GATEWAY_HOST}}"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"payments",
+								"checkout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "USSD PIN Authorization",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{JWT_TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"invoiceId\": \"invoice-789\",\n    \"pin\": \"1234\"\n}"
+						},
+						"url": {
+							"raw": "http://{{GATEWAY_HOST}}:3000/api/payments/authorize",
+							"protocol": "http",
+							"host": [
+								"{{GATEWAY_HOST}}"
+							],
+							"port": "3000",
+							"path": [
+								"api",
+								"payments",
+								"authorize"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "GATEWAY_HOST",
+			"value": "167.86.100.54",
+			"type": "string"
+		},
+		{
+			"key": "JWT_TOKEN",
+			"value": "your-jwt-token-here",
+			"type": "string"
+		}
+	]
+}
