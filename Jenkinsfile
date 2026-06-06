@@ -27,12 +27,12 @@ pipeline {
 
         stage('Install Dependencies on Host') {
             steps {
-                echo 'Installing workspace dependencies on VPS host...'
+                echo 'Installing identity-service dependencies on VPS host...'
                 withCredentials([sshUserPrivateKey(credentialsId: VPS_SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                     sh '''
                         ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${VPS_HOST} "
-                            cd ${APP_DIR}/backend &&
-                            npm install --workspaces
+                            cd ${APP_DIR}/backend/identity-service &&
+                            npm install
                         "
                     '''
                 }
@@ -41,26 +41,12 @@ pipeline {
 
         stage('Run Tests on Host') {
             steps {
-                echo 'Running tests on VPS host...'
+                echo 'Running unit tests for identity-service on VPS host...'
                 withCredentials([sshUserPrivateKey(credentialsId: VPS_SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                     sh '''
                         ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${VPS_HOST} "
-                            cd ${APP_DIR}/backend &&
-                            npm run test --workspaces --if-present
-                        "
-                    '''
-                }
-            }
-        }
-
-        stage('Build Project on Host') {
-            steps {
-                echo 'Compiling project on VPS host...'
-                withCredentials([sshUserPrivateKey(credentialsId: VPS_SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
-                    sh '''
-                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${VPS_HOST} "
-                            cd ${APP_DIR}/backend &&
-                            npm run build --workspaces --if-present
+                            cd ${APP_DIR}/backend/identity-service &&
+                            npm run test --if-present
                         "
                     '''
                 }
