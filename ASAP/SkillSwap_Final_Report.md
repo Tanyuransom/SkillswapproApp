@@ -512,8 +512,15 @@ Our restructured `Jenkinsfile` securely integrates with the VPS host system usin
 ### 4.3 Continuous Monitoring Setup (Prometheus & Grafana)
 We configured metrics exporters and monitoring dashboards on the production VPS:
 *   **Prometheus Exporter (Port 9090)**: Collects node engine health, request durations, and memory utilization statistics at 15-second intervals.
-*   **Grafana Dashboards (Port 4000)**: Visualizes memory saturation, active traffic threads, and network throughput using real-time graphical panel dashboards.
-*   **Key Monitored Metrics**:
+*   **Grafana Dashboards (Port 4000)**: Visualizes memory saturation, active traffic threads, and network throughput using real-time graphical panels.
+*   **Data Source Integration**: Grafana connects to the Prometheus server internally using the service locator **`http://prometheus:9090`** inside the custom Docker network (`backend_default`).
+*   **Dashboard Configuration**: Added the dashboard titled **`SkillSwap Pro Monitoring`** to visualize active microservices.
+*   **Key Monitored Metrics & Queries**:
+    *   `up`: Confirms target health. When executed, it successfully displays live lines for all running containers:
+        - `{instance="course-service:3002", job="course-service"}` (Status: `1` / Healthy)
+        - `{instance="gateway-service:3000", job="api-gateway"}` (Status: `1` / Healthy)
+        - `{instance="identity-service:3001", job="identity-service"}` (Status: `1` / Healthy)
+        - `{instance="user-service:3003", job="user-service"}` (Status: `1` / Healthy)
     *   `http_requests_total`: Monitored at the Gateway level to detect request volume and error patterns.
     *   `process_resident_memory_bytes`: Tracked on each microservice to identify memory leaks before they cause container eviction.
     *   `pg_stat_database_numbackends`: Tracks active connections to PostgreSQL databases to prevent connection starvation.
