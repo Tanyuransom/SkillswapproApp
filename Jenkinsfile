@@ -6,7 +6,6 @@ pipeline {
         DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
         VPS_SSH_CREDENTIALS_ID = 'vps-ssh-credentials'
         VPS_HOST = '167.86.100.54'
-        VPS_USER = 'root'
         APP_DIR = '/opt/skillprof'
     }
 
@@ -14,9 +13,9 @@ pipeline {
         stage('Pull Latest Code on VPS') {
             steps {
                 echo 'Pulling code from Git repository on VPS host...'
-                sshagent([VPS_SSH_CREDENTIALS_ID]) {
+                withCredentials([sshUserPrivateKey(credentialsId: VPS_SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${VPS_HOST} "
                             cd ${APP_DIR} &&
                             git fetch origin &&
                             git reset --hard origin/main
@@ -29,9 +28,9 @@ pipeline {
         stage('Install Dependencies on Host') {
             steps {
                 echo 'Installing workspace dependencies on VPS host...'
-                sshagent([VPS_SSH_CREDENTIALS_ID]) {
+                withCredentials([sshUserPrivateKey(credentialsId: VPS_SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${VPS_HOST} "
                             cd ${APP_DIR}/backend &&
                             npm install --workspaces
                         "
@@ -43,9 +42,9 @@ pipeline {
         stage('Run Tests on Host') {
             steps {
                 echo 'Running tests on VPS host...'
-                sshagent([VPS_SSH_CREDENTIALS_ID]) {
+                withCredentials([sshUserPrivateKey(credentialsId: VPS_SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${VPS_HOST} "
                             cd ${APP_DIR}/backend &&
                             npm run test --workspaces --if-present
                         "
@@ -57,9 +56,9 @@ pipeline {
         stage('Build Project on Host') {
             steps {
                 echo 'Compiling project on VPS host...'
-                sshagent([VPS_SSH_CREDENTIALS_ID]) {
+                withCredentials([sshUserPrivateKey(credentialsId: VPS_SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${VPS_HOST} "
                             cd ${APP_DIR}/backend &&
                             npm run build --workspaces --if-present
                         "
@@ -71,9 +70,9 @@ pipeline {
         stage('Build Docker Images on Host') {
             steps {
                 echo 'Building Docker images on VPS host...'
-                sshagent([VPS_SSH_CREDENTIALS_ID]) {
+                withCredentials([sshUserPrivateKey(credentialsId: VPS_SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${VPS_HOST} "
                             cd ${APP_DIR}/backend &&
                             docker build -t tanyuransom/skillprof-gateway-service:latest ./gateway-service &&
                             docker build -t tanyuransom/skillprof-identity-service:latest ./identity-service &&
@@ -88,18 +87,19 @@ pipeline {
         stage('Push Docker Images to Docker Hub') {
             steps {
                 echo 'Logging in and pushing images from VPS host...'
-                withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
-                    sshagent([VPS_SSH_CREDENTIALS_ID]) {
-                        sh '''
-                            ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "
-                                docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD} ${DOCKER_REGISTRY} &&
-                                docker push tanyuransom/skillprof-gateway-service:latest &&
-                                docker push tanyuransom/skillprof-identity-service:latest &&
-                                docker push tanyuransom/skillprof-user-service:latest &&
-                                docker push tanyuransom/skillprof-course-service:latest
-                            "
-                        '''
-                    }
+                withCredentials([
+                    usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD'),
+                    sshUserPrivateKey(credentialsId: VPS_SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')
+                ]) {
+                    sh '''
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${VPS_HOST} "
+                            docker login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD} ${DOCKER_REGISTRY} &&
+                            docker push tanyuransom/skillprof-gateway-service:latest &&
+                            docker push tanyuransom/skillprof-identity-service:latest &&
+                            docker push tanyuransom/skillprof-user-service:latest &&
+                            docker push tanyuransom/skillprof-course-service:latest
+                        "
+                    '''
                 }
             }
         }
@@ -107,9 +107,9 @@ pipeline {
         stage('Deploy to Kubernetes (VPS)') {
             steps {
                 echo 'Deploying manifests and restarting deployments on VPS K3s...'
-                sshagent([VPS_SSH_CREDENTIALS_ID]) {
+                withCredentials([sshUserPrivateKey(credentialsId: VPS_SSH_CREDENTIALS_ID, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_HOST} "
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${SSH_USER}@${VPS_HOST} "
                             cd ${APP_DIR} &&
                             kubectl apply -f k8s/databases-k8s.yaml &&
                             kubectl apply -f k8s/services-k8s.yaml &&
