@@ -1,3 +1,4 @@
+## Identity Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -41,6 +42,7 @@ spec:
   selector:
     app: identity-service
 ---
+## User Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -67,6 +69,8 @@ spec:
               value: "3003"
             - name: DATABASE_URL
               value: "postgres://skilluser:skillpassword@user-db:5432/user_db"
+            - name: JWT_SECRET
+              value: "yoursecretkey"
 ---
 apiVersion: v1
 kind: Service
@@ -80,6 +84,7 @@ spec:
   selector:
     app: user-service
 ---
+## Course Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -106,6 +111,8 @@ spec:
               value: "3002"
             - name: DATABASE_URL
               value: "postgres://skilluser:skillpassword@course-db:5432/course_db"
+            - name: JWT_SECRET
+              value: "yoursecretkey"
 ---
 apiVersion: v1
 kind: Service
@@ -118,3 +125,525 @@ spec:
       targetPort: 3002
   selector:
     app: course-service
+---
+## Category Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: category-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: category-service
+  template:
+    metadata:
+      labels:
+        app: category-service
+    spec:
+      containers:
+        - name: category-service
+          image: tanyuransom/skillprof-category-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3004
+          env:
+            - name: PORT
+              value: "3004"
+            - name: DATABASE_URL
+              value: "postgres://skilluser:skillpassword@common-db:5432/common_db"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: category-service
+  namespace: default
+spec:
+  ports:
+    - port: 3004
+      targetPort: 3004
+  selector:
+    app: category-service
+---
+## Shorts Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shorts-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shorts-service
+  template:
+    metadata:
+      labels:
+        app: shorts-service
+    spec:
+      containers:
+        - name: shorts-service
+          image: tanyuransom/skillprof-shorts-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3005
+          env:
+            - name: PORT
+              value: "3005"
+            - name: DATABASE_URL
+              value: "postgres://skilluser:skillpassword@common-db:5432/common_db"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shorts-service
+  namespace: default
+spec:
+  ports:
+    - port: 3005
+      targetPort: 3005
+  selector:
+    app: shorts-service
+---
+## Messaging Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: messaging-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: messaging-service
+  template:
+    metadata:
+      labels:
+        app: messaging-service
+    spec:
+      containers:
+        - name: messaging-service
+          image: tanyuransom/skillprof-messaging-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3006
+          env:
+            - name: PORT
+              value: "3006"
+            - name: DATABASE_URL
+              value: "postgres://skilluser:skillpassword@common-db:5432/common_db"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: messaging-service
+  namespace: default
+spec:
+  ports:
+    - port: 3006
+      targetPort: 3006
+  selector:
+    app: messaging-service
+---
+## Notification Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: tanyuransom/skillprof-notification-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3007
+          env:
+            - name: PORT
+              value: "3007"
+            - name: DATABASE_URL
+              value: "postgres://skilluser:skillpassword@common-db:5432/common_db"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: default
+spec:
+  ports:
+    - port: 3007
+      targetPort: 3007
+  selector:
+    app: notification-service
+---
+## Enrollment Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enrollment-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: enrollment-service
+  template:
+    metadata:
+      labels:
+        app: enrollment-service
+    spec:
+      containers:
+        - name: enrollment-service
+          image: tanyuransom/skillprof-enrollment-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3008
+          env:
+            - name: PORT
+              value: "3008"
+            - name: DATABASE_URL
+              value: "postgres://skilluser:skillpassword@enrollment-db:5432/enrollment_db"
+            - name: JWT_SECRET
+              value: "yoursecretkey"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enrollment-service
+  namespace: default
+spec:
+  ports:
+    - port: 3008
+      targetPort: 3008
+  selector:
+    app: enrollment-service
+---
+## Payment Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+        - name: payment-service
+          image: tanyuransom/skillprof-payment-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3009
+          env:
+            - name: PORT
+              value: "3009"
+            - name: DATABASE_URL
+              value: "postgres://skilluser:skillpassword@common-db:5432/common_db"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: default
+spec:
+  ports:
+    - port: 3009
+      targetPort: 3009
+  selector:
+    app: payment-service
+---
+## Verification Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verification-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verification-service
+  template:
+    metadata:
+      labels:
+        app: verification-service
+    spec:
+      containers:
+        - name: verification-service
+          image: tanyuransom/skillprof-verification-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3010
+          env:
+            - name: PORT
+              value: "3010"
+            - name: DATABASE_URL
+              value: "postgres://skilluser:skillpassword@common-db:5432/common_db"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: verification-service
+  namespace: default
+spec:
+  ports:
+    - port: 3010
+      targetPort: 3010
+  selector:
+    app: verification-service
+---
+## Blog Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blog-service
+  template:
+    metadata:
+      labels:
+        app: blog-service
+    spec:
+      containers:
+        - name: blog-service
+          image: tanyuransom/skillprof-blog-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3011
+          env:
+            - name: PORT
+              value: "3011"
+            - name: DATABASE_URL
+              value: "postgres://skilluser:skillpassword@common-db:5432/common_db"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blog-service
+  namespace: default
+spec:
+  ports:
+    - port: 3011
+      targetPort: 3011
+  selector:
+    app: blog-service
+---
+## Stat Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stat-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stat-service
+  template:
+    metadata:
+      labels:
+        app: stat-service
+    spec:
+      containers:
+        - name: stat-service
+          image: tanyuransom/skillprof-stat-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3012
+          env:
+            - name: PORT
+              value: "3012"
+            - name: DATABASE_URL
+              value: "postgres://skilluser:skillpassword@common-db:5432/common_db"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stat-service
+  namespace: default
+spec:
+  ports:
+    - port: 3012
+      targetPort: 3012
+  selector:
+    app: stat-service
+---
+## Like Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: like-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: like-service
+  template:
+    metadata:
+      labels:
+        app: like-service
+    spec:
+      containers:
+        - name: like-service
+          image: tanyuransom/skillprof-like-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3014
+          env:
+            - name: PORT
+              value: "3014"
+            - name: DATABASE_URL
+              value: "postgres://skilluser:skillpassword@common-db:5432/common_db"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: like-service
+  namespace: default
+spec:
+  ports:
+    - port: 3014
+      targetPort: 3014
+  selector:
+    app: like-service
+---
+## Comment Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: comment-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: comment-service
+  template:
+    metadata:
+      labels:
+        app: comment-service
+    spec:
+      containers:
+        - name: comment-service
+          image: tanyuransom/skillprof-comment-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3015
+          env:
+            - name: PORT
+              value: "3015"
+            - name: DATABASE_URL
+              value: "postgres://skilluser:skillpassword@common-db:5432/common_db"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: comment-service
+  namespace: default
+spec:
+  ports:
+    - port: 3015
+      targetPort: 3015
+  selector:
+    app: comment-service
+---
+## Share Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: share-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: share-service
+  template:
+    metadata:
+      labels:
+        app: share-service
+    spec:
+      containers:
+        - name: share-service
+          image: tanyuransom/skillprof-share-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3016
+          env:
+            - name: PORT
+              value: "3016"
+            - name: DATABASE_URL
+              value: "postgres://skilluser:skillpassword@common-db:5432/common_db"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: share-service
+  namespace: default
+spec:
+  ports:
+    - port: 3016
+      targetPort: 3016
+  selector:
+    app: share-service
+---
+## Level Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: level-service
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: level-service
+  template:
+    metadata:
+      labels:
+        app: level-service
+    spec:
+      containers:
+        - name: level-service
+          image: tanyuransom/skillprof-level-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3017
+          env:
+            - name: PORT
+              value: "3017"
+            - name: DATABASE_URL
+              value: "postgres://skilluser:skillpassword@level-db:5432/level_db"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: level-service
+  namespace: default
+spec:
+  ports:
+    - port: 3017
+      targetPort: 3017
+  selector:
+    app: level-service

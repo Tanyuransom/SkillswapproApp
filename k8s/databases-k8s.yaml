@@ -1,10 +1,10 @@
+## Identity DB
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: identity-db-pvc
 spec:
-  accessModes:
-    - ReadWriteOnce
+  accessModes: [ReadWriteOnce]
   resources:
     requests:
       storage: 1Gi
@@ -53,13 +53,13 @@ spec:
   selector:
     app: identity-db
 ---
+## User DB
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: user-db-pvc
 spec:
-  accessModes:
-    - ReadWriteOnce
+  accessModes: [ReadWriteOnce]
   resources:
     requests:
       storage: 1Gi
@@ -108,13 +108,13 @@ spec:
   selector:
     app: user-db
 ---
+## Course DB
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: course-db-pvc
 spec:
-  accessModes:
-    - ReadWriteOnce
+  accessModes: [ReadWriteOnce]
   resources:
     requests:
       storage: 1Gi
@@ -162,3 +162,168 @@ spec:
     - port: 5432
   selector:
     app: course-db
+---
+## Enrollment DB
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: enrollment-db-pvc
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enrollment-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: enrollment-db
+  template:
+    metadata:
+      labels:
+        app: enrollment-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          env:
+            - name: POSTGRES_USER
+              value: skilluser
+            - name: POSTGRES_PASSWORD
+              value: skillpassword
+            - name: POSTGRES_DB
+              value: enrollment_db
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: enrollment-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: enrollment-db
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: enrollment-db
+---
+## Level DB
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: level-db-pvc
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: level-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: level-db
+  template:
+    metadata:
+      labels:
+        app: level-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          env:
+            - name: POSTGRES_USER
+              value: skilluser
+            - name: POSTGRES_PASSWORD
+              value: skillpassword
+            - name: POSTGRES_DB
+              value: level_db
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: level-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: level-db
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: level-db
+---
+## Common DB (Shared by shorts, messaging, notification, payment, blog, stat, category, like, comment, verification)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: common-db-pvc
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: common-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: common-db
+  template:
+    metadata:
+      labels:
+        app: common-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          env:
+            - name: POSTGRES_USER
+              value: skilluser
+            - name: POSTGRES_PASSWORD
+              value: skillpassword
+            - name: POSTGRES_DB
+              value: common_db
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: common-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: common-db
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: common-db
